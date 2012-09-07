@@ -1,0 +1,6 @@
+ 0.02
+  - Replace '_precision' (not exported) with 'ld_get_prec' (exported).
+  - Provide 'ld_set_prec'.
+  - Remove LONG_DOUBLE_DECIMAL_PRECISION macro.
+  - Provide LdtoSTRP.
+  - set default precision of stringified values to 18 decimal digits.

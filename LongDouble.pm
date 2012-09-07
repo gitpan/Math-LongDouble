@@ -41,7 +41,7 @@ use overload
   '--'    => \&_overload_dec,
 ;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 $VERSION = eval $VERSION;
 
 DynaLoader::bootstrap Math::LongDouble $Math::LongDouble::VERSION;
@@ -49,12 +49,14 @@ DynaLoader::bootstrap Math::LongDouble $Math::LongDouble::VERSION;
 @Math::LongDouble::EXPORT = ();
 @Math::LongDouble::EXPORT_OK = qw(
     InfLD NaNLD ZeroLD UnityLD is_NaNLD is_InfLD is_ZeroLD STRtoLD LDtoSTR NVtoLD UVtoLD IVtoLD
-    LDtoNV LDtoLD cmp_NV 
+    LDtoNV LDtoLD cmp_NV
+    ld_set_prec ld_get_prec LDtoSTRP
     );
 
 %Math::LongDouble::EXPORT_TAGS = (all => [qw(
     InfLD NaNLD ZeroLD UnityLD is_NaNLD is_InfLD is_ZeroLD STRtoLD LDtoSTR NVtoLD UVtoLD IVtoLD
     LDtoNV LDtoLD cmp_NV
+    ld_set_prec ld_get_prec LDtoSTRP
     )]);
 
 sub dl_load_flags {0} # Prevent DynaLoader from complaining and croaking
@@ -210,7 +212,7 @@ Math::LongDouble - perl interface to C's long double operations
      Math::LongDouble object provided as the argument.
 
 
-=head1 ASSIGNMENT OF INF, NAN and ZERO
+=head1 ASSIGNMENT OF INF, NAN, UNITY and ZERO
 
    $ld = InfLD($sign);
     If $sign < 0, returns a Math::LongDouble object set to
@@ -229,6 +231,21 @@ Math::LongDouble - perl interface to C's long double operations
     negative zero; else returns a Math::LongDouble object set to 
     zero.
 
+   $ld = UnityLD($sign);
+    If $sign < 0, returns a Math::LongDouble object set to
+    negative one; else returns a Math::LongDouble object set to 
+    one.
+
+   ld_set_prec($precision);
+    Sets the precision of stringified values to $precision decimal
+    digits.
+
+   $precision = ld_get_prec();
+    Returns the precision (in decimal digits) that will be used
+    when stringifying values (by printing them, or calling
+    LDtoSTR).
+
+
 
 =head1 RETRIEVAL FUNCTIONS
 
@@ -244,6 +261,13 @@ Math::LongDouble - perl interface to C's long double operations
     The returned string will contain the same as is displayed by
     "print $ld", except that print() will strip the trailing zeroes
     in the mantissa (significand) whereas LDtoSTR won't.
+    By default, provides 18 decimal digits of precision. This can be
+    altered by specifying the desired precision (in decimal digits)
+    in a call to ld_set_prec.
+
+   $string = LDtoSTRP($ld, $precision);
+    Same as LDtoSTR, but takes an additional arg that specifies the
+    precision (in decimal digits) of the stringified return value.
 
 
 =head1 OTHER FUNCTIONS

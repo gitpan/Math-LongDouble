@@ -3,6 +3,7 @@ Makefile.PL
 LongDouble.pm
 LongDouble.xs
 README
+Changes
 t/abs.t
 t/arith.t
 t/bool.t
@@ -13,6 +14,7 @@ t/log_exp.t
 t/new.t
 t/pod.t
 t/pow.t
+t/prec.t
 t/trig.t
 
 

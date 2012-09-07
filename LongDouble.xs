@@ -12,9 +12,6 @@
 
 #include <stdlib.h>
 
-#ifndef LONG_DOUBLE_DECIMAL_PRECISION
-#define LONG_DOUBLE_DECIMAL_PRECISION 20
-#endif 
 
 #ifdef OLDPERL
 #define SvUOK SvIsUV
@@ -23,6 +20,13 @@
 #ifndef Newx
 #  define Newx(v,n,t) New(0,v,n,t)
 #endif
+
+int _DIGITS = 18;
+
+void ld_set_prec(int x) {
+    if(x < 1)croak("1st arg (precision) to ld_set_prec must be at least 1");
+    _DIGITS = x;
+}
 
 int _is_nan(long double x) {
     if(x != x) return 1;
@@ -44,16 +48,16 @@ int  _is_zero(long double x) {
 
      if(x != 0.0L) return 0;
 
-     buffer = malloc(2 * sizeof(char));
+     Newx(buffer, 2, char);
 
      sprintf(buffer, "%.0Lf", x);
 
      if(!strcmp(buffer, "-0")) {
-       free(buffer);
+       Safefree(buffer);
        return -1;
      }   
 
-     free(buffer);
+     Safefree(buffer);
      return 1;
 }
 
@@ -192,15 +196,40 @@ void LDtoSTR(SV * ld) {
           EXTEND(SP, 1);
           t = *(INT2PTR(long double *, SvIV(SvRV(ld))));
 
-          buffer = malloc(40 * sizeof(char));
-          sprintf(buffer, "%.*Le", LONG_DOUBLE_DECIMAL_PRECISION - 1, t);
+          Newx(buffer, 8 + _DIGITS, char);
+          if(buffer == NULL) croak("Failed to allocate memory in LDtoSTR()");
+          sprintf(buffer, "%.*Le", _DIGITS - 1, t);
           ST(0) = sv_2mortal(newSVpv(buffer, 0));
-          free(buffer);
+          Safefree(buffer);
           XSRETURN(1);
        }
        else croak("Invalid object supplied to Math::LongDouble::LDtoSTR function");
      }
      else croak("Invalid argument supplied to Math::LongDouble::LDtoSTR function");
+}
+
+void LDtoSTRP(SV * ld, int decimal_prec) {
+     dXSARGS;
+     long double t;
+     char * buffer;
+
+     if(decimal_prec < 1)croak("2nd arg (precision) to LDtoSTRP  must be at least 1");
+
+     if(sv_isobject(ld)) {
+       if(strEQ(HvNAME(SvSTASH(SvRV(ld))), "Math::LongDouble")) {
+          EXTEND(SP, 1);
+          t = *(INT2PTR(long double *, SvIV(SvRV(ld))));
+
+          Newx(buffer, 8 + decimal_prec, char);
+          if(buffer == NULL) croak("Failed to allocate memory in LDtoSTRP()");
+          sprintf(buffer, "%.*Le", decimal_prec - 1, t);
+          ST(0) = sv_2mortal(newSVpv(buffer, 0));
+          Safefree(buffer);
+          XSRETURN(1);
+       }
+       else croak("Invalid object supplied to Math::LongDouble::LDtoSTRP function");
+     }
+     else croak("Invalid argument supplied to Math::LongDouble::LDtoSTRP function");
 }
 
 SV * NVtoLD(SV * x) {
@@ -813,13 +842,29 @@ SV * _wrap_count(void) {
      return newSVuv(PL_sv_count);
 }
 
-SV * _precision(void) {
-    return newSVuv(LONG_DOUBLE_DECIMAL_PRECISION);
+SV * ld_get_prec(void) {
+    return newSVuv(_DIGITS);
 }
 MODULE = Math::LongDouble	PACKAGE = Math::LongDouble	
 
 PROTOTYPES: DISABLE
 
+
+void
+ld_set_prec (x)
+	int	x
+	PREINIT:
+	I32* temp;
+	PPCODE:
+	temp = PL_markstack_ptr++;
+	ld_set_prec(x);
+	if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+	  PL_markstack_ptr = temp;
+	  XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+	return; /* assume stack size is correct */
 
 SV *
 InfLD (sign)
@@ -861,6 +906,23 @@ LDtoSTR (ld)
 	PPCODE:
 	temp = PL_markstack_ptr++;
 	LDtoSTR(ld);
+	if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+	  PL_markstack_ptr = temp;
+	  XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+	return; /* assume stack size is correct */
+
+void
+LDtoSTRP (ld, decimal_prec)
+	SV *	ld
+	int	decimal_prec
+	PREINIT:
+	I32* temp;
+	PPCODE:
+	temp = PL_markstack_ptr++;
+	LDtoSTRP(ld, decimal_prec);
 	if (PL_markstack_ptr != temp) {
           /* truly void, because dXSARGS not invoked */
 	  PL_markstack_ptr = temp;
@@ -1107,6 +1169,6 @@ _wrap_count ()
 		
 
 SV *
-_precision ()
+ld_get_prec ()
 		
 

@@ -9,14 +9,6 @@ perl Makefile.PL
 make test
 make install
 
-It is assumed that your 'long double' has precision p = 64 (ie 64-bits, or 20 decimal digits of precision).
-If this is not the case, you can either:
-  1) Set $digits to x (in the Makefile.PL)
- or
-  2) Run 'perl Makefile DIG=x'
-
-where x is ceil(p * 0.30103)
-
 Note that this module has bugs on perls built with a Microsoft compiler (eg  ActivePerl) - even if the
 binaries installed onto the MSVC-built perl were built using MinGW on a MinGW-built perl such as Strawberry
 Perl (where no such problem exists).
