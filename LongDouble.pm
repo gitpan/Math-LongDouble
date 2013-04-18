@@ -41,7 +41,7 @@ use overload
   '--'    => \&_overload_dec,
 ;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 $VERSION = eval $VERSION;
 
 DynaLoader::bootstrap Math::LongDouble $Math::LongDouble::VERSION;
@@ -68,6 +68,11 @@ sub _overload_string {
       return '0'; 
     }
 
+    if(is_NaNLD($_[0])) {return 'NaN'}
+    my $inf = is_InfLD($_[0]);
+    return '-Inf' if $inf < 0;
+    return 'Inf'  if $inf > 0;
+
     my @p = split /e/i, LDtoSTR($_[0]);
     while(substr($p[0], -1, 1) eq '0' && substr($p[0], -2, 1) ne '.') {
       chop $p[0];
@@ -83,7 +88,7 @@ sub new {
     # 2) that 'new' has been called as a function - in
     #    which case there will be a maximum of 1 arg.
     # If there are no args, then we just want to return a
-    # Math::Decimal64 object that's a NaN.
+    # Math::LongDouble object that's a NaN.
     
     if(!@_) {return NaNLD(1)}
    
@@ -91,7 +96,7 @@ sub new {
 
     # If 'new' has been called OOP style, the first arg is the string
     # "Math::LongDouble" which we don't need - so let's remove it. However,
-    # if the first arg is a Math::Decimal64 object (which is a possibility),
+    # if the first arg is a Math::LongDouble object (which is a possibility),
     # then we'll get a fatal error when we check it for equivalence to
     # the string "Math::LongDouble". So we first need to check that it's
     # not an object - which we'll do by using the ref() function:
@@ -104,6 +109,18 @@ sub new {
 
     my $arg = shift;
     my $type = _itsa($arg);
+
+    if($type == 3) { # NV
+      if($arg == 0) {return STRtoLD($arg)}
+      if($arg != $arg) { #NaN
+        if($arg =~ /^\-/) {return NaNLD(-1)}
+        return NaNLD(1);
+      }
+      if(($arg / $arg) != ($arg / $arg)) { # Inf
+        if($arg < 0) {return InfLD(-1)}
+        return InfLD(1);
+      }
+    }
 
     if(
        $type == 1 || #UV
@@ -187,9 +204,7 @@ Math::LongDouble - perl interface to C's long double operations
     $ld = Math::LongDouble->new($arg);
      Returns a Math::LongDouble object to which the numeric value of $arg
      has been assigned.
-     If $arg is Math::LongDouble object, then it creates a copy of that
-     object. Else, it first stringifies $arg, then assigns that numeric
-     value using C's strtold function.
+     If no arg is supplied then $ld will be NaN.
 
     $ld = UVtoLD($arg);
      Returns a Math::LongDouble object to which the numeric (unsigned
@@ -203,20 +218,22 @@ Math::LongDouble - perl interface to C's long double operations
      Returns a Math::LongDouble object to which the numeric (floating
      point) value of $arg has been assigned.
 
-    $ld = LDtoLD($arg);
-     Returns a Math::LongDouble object to which the numeric (floating
-     point) value of $arg has been assigned.
-
-    $ld2 = STRtoLD($ld);
+    $ld2 = LDtoLD($ld1);
      Returns a Math::LongDouble object that is a copy of the
      Math::LongDouble object provided as the argument.
+     Courtesy of overloading, this is in effect no different to doing:
+     $ld2 = $ld1;
+
+    $ld = STRtoLD($str);
+     Returns a Math::LongDouble object that has the value of the string
+     $str.
 
 
 =head1 ASSIGNMENT OF INF, NAN, UNITY and ZERO
 
    $ld = InfLD($sign);
     If $sign < 0, returns a Math::LongDouble object set to
-    negative infinity; else returns a Math::Decimal64 object set
+    negative infinity; else returns a Math::LongDouble object set
     to positive infinity.
 
    $ld = NaNLD($sign);
@@ -287,6 +304,7 @@ Math::LongDouble - perl interface to C's long double operations
     Otherwise returns 0.
 
    $int = cmp_NV($ld, $nv);
+    $nv can be any perl number - ie NV, UV or IV.
     If the Math::LongDouble object $ld < $nv returns -1.
     If it is > $nv, returns 1.
     Otherwise returns 0.

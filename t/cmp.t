@@ -3,7 +3,7 @@ use strict;
 use Math::LongDouble qw(:all);
 use Config;
 
-print "1..7\n";
+print "1..8\n";
 
 my $nan = NaNLD(1);
 my $zero = ZeroLD(-1);
@@ -67,3 +67,30 @@ else {
   }
 }
 
+my $ok = 1;
+
+for(-10 .. 10) {
+  my $ld = Math::LongDouble->new($_);
+  my $ldg = $ld + Math::LongDouble->new('0.000000001');
+  my $ldl = $ld - Math::LongDouble->new('0.000000001');
+  unless(cmp_NV($ld, $_) == 0) {
+    warn "n\ld: $ld\n\$_: $_\n";
+    $ok = 0;
+  }
+
+  unless(cmp_NV($ldg, $_) == 1) {
+    warn "n\ldg: $ldg\n\$_: $_\n";
+    $ok = 0;
+  }
+
+  unless(cmp_NV($ldl, $_) == -1) {
+    warn "n\ldl: $ldl\n\$_: $_\n";
+    $ok = 0;
+  }
+}
+
+if($ok) {print "ok 8\n"}
+else {
+  warn "\n\$ok: $ok\n";
+  print "not ok\n";
+}

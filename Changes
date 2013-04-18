@@ -1,3 +1,11 @@
+ 0.03
+  - Fix LDtoLD and STRtoLD documentation.
+  - Alter the way that strEQ gets hold of HvNAME(SvSTASH(SvRV(sv))) - so that -Wall
+    doesn't emit "null argument" warnings. (Thanks Daniel Kahn Gillmor.)
+  - Add t/stringification.t.
+  - Fix typos in documentation.
+  - Fix bug in new() - it wasn't handling infinity/nan args correctly.
+
  0.02
   - Replace '_precision' (not exported) with 'ld_get_prec' (exported).
   - Provide 'ld_set_prec'.

@@ -21,11 +21,11 @@
 #  define Newx(v,n,t) New(0,v,n,t)
 #endif
 
-int _DIGITS = 18;
+int _MATH_LONGDOUBLE_DIGITS = 18;
 
 void ld_set_prec(int x) {
     if(x < 1)croak("1st arg (precision) to ld_set_prec must be at least 1");
-    _DIGITS = x;
+    _MATH_LONGDOUBLE_DIGITS = x;
 }
 
 int _is_nan(long double x) {
@@ -146,7 +146,8 @@ SV * UnityLD(int sign) {
 
 int is_NaNLD(SV * b) {
      if(sv_isobject(b)) {
-       if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble"))
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble"))
          return _is_nan(*(INT2PTR(long double *, SvIV(SvRV(b)))));
      }
      croak("Invalid argument supplied to Math::LongDouble::isNaNLD function");
@@ -154,7 +155,8 @@ int is_NaNLD(SV * b) {
 
 int is_InfLD(SV * b) {
      if(sv_isobject(b)) {
-       if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble"))
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble"))
          return _is_inf(*(INT2PTR(long double *, SvIV(SvRV(b)))));
      }
      croak("Invalid argument supplied to Math::LongDouble::is_InfLD function");
@@ -162,7 +164,8 @@ int is_InfLD(SV * b) {
 
 int is_ZeroLD(SV * b) {
      if(sv_isobject(b)) {
-       if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble"))
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble"))
          return _is_zero(*(INT2PTR(long double *, SvIV(SvRV(b)))));
      }
      croak("Invalid argument supplied to Math::LongDouble::is_ZeroLD function");
@@ -192,13 +195,14 @@ void LDtoSTR(SV * ld) {
      char * buffer;
 
      if(sv_isobject(ld)) {
-       if(strEQ(HvNAME(SvSTASH(SvRV(ld))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(ld)));
+       if(strEQ(h, "Math::LongDouble")) {
           EXTEND(SP, 1);
           t = *(INT2PTR(long double *, SvIV(SvRV(ld))));
 
-          Newx(buffer, 8 + _DIGITS, char);
+          Newx(buffer, 8 + _MATH_LONGDOUBLE_DIGITS, char);
           if(buffer == NULL) croak("Failed to allocate memory in LDtoSTR()");
-          sprintf(buffer, "%.*Le", _DIGITS - 1, t);
+          sprintf(buffer, "%.*Le", _MATH_LONGDOUBLE_DIGITS - 1, t);
           ST(0) = sv_2mortal(newSVpv(buffer, 0));
           Safefree(buffer);
           XSRETURN(1);
@@ -216,7 +220,8 @@ void LDtoSTRP(SV * ld, int decimal_prec) {
      if(decimal_prec < 1)croak("2nd arg (precision) to LDtoSTRP  must be at least 1");
 
      if(sv_isobject(ld)) {
-       if(strEQ(HvNAME(SvSTASH(SvRV(ld))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(ld)));
+       if(strEQ(h, "Math::LongDouble")) {
           EXTEND(SP, 1);
           t = *(INT2PTR(long double *, SvIV(SvRV(ld))));
 
@@ -302,7 +307,8 @@ SV * _overload_add(SV * a, SV * b, SV * third) {
      SvREADONLY_on(obj);
 
     if(sv_isobject(b)) {
-      if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble")) {
         *ld = *(INT2PTR(long double *, SvIV(SvRV(a)))) + *(INT2PTR(long double *, SvIV(SvRV(b))));
         return obj_ref; 
       }
@@ -326,7 +332,8 @@ SV * _overload_mul(SV * a, SV * b, SV * third) {
      SvREADONLY_on(obj);
 
     if(sv_isobject(b)) {
-      if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble")) {
         *ld = *(INT2PTR(long double *, SvIV(SvRV(a)))) * *(INT2PTR(long double *, SvIV(SvRV(b))));
         return obj_ref; 
       }
@@ -349,7 +356,8 @@ SV * _overload_sub(SV * a, SV * b, SV * third) {
      SvREADONLY_on(obj);
 
     if(sv_isobject(b)) {
-      if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble")) {
         *ld = *(INT2PTR(long double *, SvIV(SvRV(a)))) - *(INT2PTR(long double *, SvIV(SvRV(b))));
         return obj_ref; 
       }
@@ -381,7 +389,8 @@ SV * _overload_div(SV * a, SV * b, SV * third) {
      SvREADONLY_on(obj);
 
     if(sv_isobject(b)) {
-      if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble")) {
         *ld = *(INT2PTR(long double *, SvIV(SvRV(a)))) / *(INT2PTR(long double *, SvIV(SvRV(b))));
         return obj_ref; 
       }
@@ -392,7 +401,8 @@ SV * _overload_div(SV * a, SV * b, SV * third) {
 
 int _overload_equiv(SV * a, SV * b, SV * third) {
     if(sv_isobject(b)) {
-      if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble")) {
         if(*(INT2PTR(long double *, SvIV(SvRV(a)))) == *(INT2PTR(long double *, SvIV(SvRV(b))))) return 1;
         return 0; 
       }
@@ -403,7 +413,8 @@ int _overload_equiv(SV * a, SV * b, SV * third) {
 
 int _overload_not_equiv(SV * a, SV * b, SV * third) {
     if(sv_isobject(b)) {
-      if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble")) {
         if(*(INT2PTR(long double *, SvIV(SvRV(a)))) == *(INT2PTR(long double *, SvIV(SvRV(b))))) return 0;
         return 1; 
       }
@@ -430,7 +441,8 @@ SV * _overload_add_eq(SV * a, SV * b, SV * third) {
      SvREFCNT_inc(a);
 
     if(sv_isobject(b)) {
-      if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble")) {
         *(INT2PTR(long double *, SvIV(SvRV(a)))) += *(INT2PTR(long double *, SvIV(SvRV(b))));
         return a;
       }
@@ -446,7 +458,8 @@ SV * _overload_mul_eq(SV * a, SV * b, SV * third) {
      SvREFCNT_inc(a);
 
     if(sv_isobject(b)) {
-      if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble")) {
         *(INT2PTR(long double *, SvIV(SvRV(a)))) *= *(INT2PTR(long double *, SvIV(SvRV(b))));
         return a;
       }
@@ -462,7 +475,8 @@ SV * _overload_sub_eq(SV * a, SV * b, SV * third) {
      SvREFCNT_inc(a);
 
     if(sv_isobject(b)) {
-      if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble")) {
         *(INT2PTR(long double *, SvIV(SvRV(a)))) -= *(INT2PTR(long double *, SvIV(SvRV(b))));
         return a;
       }
@@ -478,7 +492,8 @@ SV * _overload_div_eq(SV * a, SV * b, SV * third) {
      SvREFCNT_inc(a);
 
     if(sv_isobject(b)) {
-      if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble")) {
         *(INT2PTR(long double *, SvIV(SvRV(a)))) /= *(INT2PTR(long double *, SvIV(SvRV(b))));
         return a;
       }
@@ -492,7 +507,8 @@ SV * _overload_div_eq(SV * a, SV * b, SV * third) {
 int _overload_lt(SV * a, SV * b, SV * third) {
 
     if(sv_isobject(b)) {
-      if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble")) {
         if(*(INT2PTR(long double *, SvIV(SvRV(a)))) < *(INT2PTR(long double *, SvIV(SvRV(b))))) return 1;
         return 0; 
       }
@@ -504,7 +520,8 @@ int _overload_lt(SV * a, SV * b, SV * third) {
 int _overload_gt(SV * a, SV * b, SV * third) {
 
     if(sv_isobject(b)) {
-      if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble")) {
         if(*(INT2PTR(long double *, SvIV(SvRV(a)))) > *(INT2PTR(long double *, SvIV(SvRV(b))))) return 1;
         return 0; 
       }
@@ -516,7 +533,8 @@ int _overload_gt(SV * a, SV * b, SV * third) {
 int _overload_lte(SV * a, SV * b, SV * third) {
 
     if(sv_isobject(b)) {
-      if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble")) {
         if(*(INT2PTR(long double *, SvIV(SvRV(a)))) <= *(INT2PTR(long double *, SvIV(SvRV(b))))) return 1;
         return 0; 
       }
@@ -528,7 +546,8 @@ int _overload_lte(SV * a, SV * b, SV * third) {
 int _overload_gte(SV * a, SV * b, SV * third) {
 
     if(sv_isobject(b)) {
-      if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble")) {
         if(*(INT2PTR(long double *, SvIV(SvRV(a)))) >= *(INT2PTR(long double *, SvIV(SvRV(b))))) return 1;
         return 0; 
       }
@@ -540,7 +559,8 @@ int _overload_gte(SV * a, SV * b, SV * third) {
 SV * _overload_spaceship(SV * a, SV * b, SV * third) {
 
     if(sv_isobject(b)) {
-      if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble")) {
         if(*(INT2PTR(long double *, SvIV(SvRV(a)))) < *(INT2PTR(long double *, SvIV(SvRV(b))))) return newSViv(-1);
         if(*(INT2PTR(long double *, SvIV(SvRV(a)))) > *(INT2PTR(long double *, SvIV(SvRV(b))))) return newSViv(1);
         if(*(INT2PTR(long double *, SvIV(SvRV(a)))) == *(INT2PTR(long double *, SvIV(SvRV(b))))) return newSViv(0);
@@ -573,7 +593,8 @@ SV * LDtoLD(SV * a) {
      SV * obj_ref, * obj;
 
      if(sv_isobject(a)) {
-       if(strEQ(HvNAME(SvSTASH(SvRV(a))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(a)));
+       if(strEQ(h, "Math::LongDouble")) {
 
          Newx(ld, 1, long double);
          if(ld == NULL) croak("Failed to allocate memory in LDtoLD() function");
@@ -597,7 +618,8 @@ SV * _itsa(SV * a) {
      if(SvNOK(a)) return newSVuv(3);
      if(SvPOK(a)) return newSVuv(4);
      if(sv_isobject(a)) {
-       if(strEQ(HvNAME(SvSTASH(SvRV(a))), "Math::LongDouble")) return newSVuv(96);
+       const char *h = HvNAME(SvSTASH(SvRV(a)));
+       if(strEQ(h, "Math::LongDouble")) return newSVuv(96);
      }
      return newSVuv(0);
 }
@@ -630,7 +652,8 @@ SV * cmp_NV(SV * ld_obj, SV * sv) {
      NV nv;
  
      if(sv_isobject(ld_obj)) {
-       if(strEQ(HvNAME(SvSTASH(SvRV(ld_obj))), "Math::LongDouble")) {    
+       const char *h = HvNAME(SvSTASH(SvRV(ld_obj)));
+       if(strEQ(h, "Math::LongDouble")) {    
          ld = *(INT2PTR(long double *, SvIV(SvRV(ld_obj))));
          nv = SvNV(sv);
 
@@ -812,7 +835,8 @@ SV * _overload_pow(SV * a, SV * b, SV * third) {
      SvREADONLY_on(obj);
 
     if(sv_isobject(b)) {
-      if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble")) {
         *ld = powl(*(INT2PTR(long double *, SvIV(SvRV(a)))), *(INT2PTR(long double *, SvIV(SvRV(b)))));
         return obj_ref; 
       }
@@ -826,7 +850,8 @@ SV * _overload_pow_eq(SV * a, SV * b, SV * third) {
      SvREFCNT_inc(a);
 
     if(sv_isobject(b)) {
-      if(strEQ(HvNAME(SvSTASH(SvRV(b))), "Math::LongDouble")) {
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble")) {
         *(INT2PTR(long double *, SvIV(SvRV(a)))) = powl(*(INT2PTR(long double *, SvIV(SvRV(a)))),
                                                         *(INT2PTR(long double *, SvIV(SvRV(b)))));
         return a;
@@ -843,7 +868,7 @@ SV * _wrap_count(void) {
 }
 
 SV * ld_get_prec(void) {
-    return newSVuv(_DIGITS);
+    return newSVuv(_MATH_LONGDOUBLE_DIGITS);
 }
 MODULE = Math::LongDouble	PACKAGE = Math::LongDouble	
 
