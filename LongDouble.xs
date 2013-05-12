@@ -11,6 +11,7 @@
 #include "XSUB.h"
 
 #include <stdlib.h>
+#include <float.h>
 
 
 #ifdef OLDPERL
@@ -21,11 +22,15 @@
 #  define Newx(v,n,t) New(0,v,n,t)
 #endif
 
-int _MATH_LONGDOUBLE_DIGITS = 18;
+#ifdef LDBL_DIG
+int _DIGITS = LDBL_DIG;
+#else
+int _DIGITS = 18;
+#endif
 
 void ld_set_prec(int x) {
     if(x < 1)croak("1st arg (precision) to ld_set_prec must be at least 1");
-    _MATH_LONGDOUBLE_DIGITS = x;
+    _DIGITS = x;
 }
 
 int _is_nan(long double x) {
@@ -200,9 +205,9 @@ void LDtoSTR(SV * ld) {
           EXTEND(SP, 1);
           t = *(INT2PTR(long double *, SvIV(SvRV(ld))));
 
-          Newx(buffer, 8 + _MATH_LONGDOUBLE_DIGITS, char);
+          Newx(buffer, 8 + _DIGITS, char);
           if(buffer == NULL) croak("Failed to allocate memory in LDtoSTR()");
-          sprintf(buffer, "%.*Le", _MATH_LONGDOUBLE_DIGITS - 1, t);
+          sprintf(buffer, "%.*Le", _DIGITS - 1, t);
           ST(0) = sv_2mortal(newSVpv(buffer, 0));
           Safefree(buffer);
           XSRETURN(1);
@@ -868,8 +873,18 @@ SV * _wrap_count(void) {
 }
 
 SV * ld_get_prec(void) {
-    return newSVuv(_MATH_LONGDOUBLE_DIGITS);
+     return newSVuv(_DIGITS);
 }
+
+SV * _LDBL_DIG(void) {
+#ifdef LDBL_DIG
+     return newSViv(LDBL_DIG);
+#else 
+     return newSViv(0);
+#endif
+}
+
+
 MODULE = Math::LongDouble	PACKAGE = Math::LongDouble	
 
 PROTOTYPES: DISABLE
@@ -1195,5 +1210,9 @@ _wrap_count ()
 
 SV *
 ld_get_prec ()
+		
+
+SV *
+_LDBL_DIG ()
 		
 

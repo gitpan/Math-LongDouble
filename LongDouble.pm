@@ -41,7 +41,7 @@ use overload
   '--'    => \&_overload_dec,
 ;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 $VERSION = eval $VERSION;
 
 DynaLoader::bootstrap Math::LongDouble $Math::LongDouble::VERSION;
@@ -314,7 +314,7 @@ Math::LongDouble - perl interface to C's long double operations
 
    This program is free software; you may redistribute it and/or modify
    it under the same terms as Perl itself.
-   Copyright 2012 Sisyphus
+   Copyright 2012, 2013 Sisyphus
 
 =head1 AUTHOR
 

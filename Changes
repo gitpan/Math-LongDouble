@@ -1,3 +1,8 @@
+ 0.04
+  - Use float.h's LDBL_DIG to set the initial value of _DIGITS in LongDouble.xs.
+  - Add _LDBL_DIG XSub so that we can see the value of float.h's LDBL_DIG.
+  - Amend t/prec.t to work with powerpc64 (where long double has 106 bits of
+    precision).
  0.03
   - Fix LDtoLD and STRtoLD documentation.
   - Alter the way that strEQ gets hold of HvNAME(SvSTASH(SvRV(sv))) - so that -Wall

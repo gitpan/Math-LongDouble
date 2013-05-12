@@ -7,9 +7,28 @@ print "1..$tests\n";
 
 my $tv = STRtoLD('-1e-37');
 
-if(ld_get_prec() == 18) {print "ok 1\n"}
+my $init_prec = Math::LongDouble::_LDBL_DIG() ? Math::LongDouble::_LDBL_DIG()
+                                              : 18;
+
+warn "\nFYI:\n LDBL_DIG = ", Math::LongDouble::_LDBL_DIG(), "\n Default precison = $init_prec\n";
+
+my $ok;
+
+if(ld_get_prec() == $init_prec) {$ok .= 'a'}
 else {
   warn "\nDefault precision: ", ld_get_prec(), "\n";
+}
+
+ld_set_prec(18);
+
+if(ld_get_prec() == 18) {$ok .= 'b'}
+else {
+  warn "\nDefault precision: ", ld_get_prec(), "\n";
+}
+
+if($ok eq 'ab') {print "ok 1\n"}
+else {
+  warn "\n\$ok: $ok\n";
   print "not ok 1\n";
 }
 
@@ -23,10 +42,19 @@ else {
 
 $man = (split /e/i, LDtoSTRP($tv, 19))[0];
 
-if($man eq '-9.999999999999999999') {print "ok 3\n"}
+if($init_prec == 18) {
+  if($man eq '-9.999999999999999999') {print "ok 3\n"}
+  else {
+    warn "\n3: Got: $man\n";
+    print "not ok 3\n";
+  }
+}
 else {
-  warn "\n3: Got: $man\n";
-  print "not ok 3\n";
+  if($man eq '-1.000000000000000000') {print "ok 3\n"}
+  else {
+    warn "\n3: Got: $man\n";
+    print "not ok 3\n";
+  }
 }
 
 ld_set_prec(19);
@@ -39,7 +67,7 @@ else {
 
 $tv *= UnityLD(-1);
 
-my $len = length((split /e/i, $tv)[0]);
+my $len = length((split /e/i, LDtoSTR($tv))[0]);
 
 if($len == 20) {print "ok 5\n"} # 19 digits plus decimal point
 else {
