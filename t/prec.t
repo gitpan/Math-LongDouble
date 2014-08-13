@@ -1,3 +1,5 @@
+# Tests 2 & 3 fail if LDBL_DIG == 15
+
 use warnings;
 use strict;
 use Math::LongDouble qw(:all);
@@ -10,7 +12,7 @@ my $tv = STRtoLD('-1e-37');
 my $init_prec = Math::LongDouble::_LDBL_DIG() ? Math::LongDouble::_LDBL_DIG()
                                               : 18;
 
-warn "\nFYI:\n LDBL_DIG = ", Math::LongDouble::_LDBL_DIG(), "\n Default precison = $init_prec\n";
+warn "\nFYI:\n DBL_DIG = ", LD_DBL_DIG, "\n LDBL_DIG = ", LD_LDBL_DIG, "\n Default precison = $init_prec\n";
 
 my $ok;
 
@@ -34,28 +36,39 @@ else {
 
 my $man = (split /e/i, LDtoSTR($tv))[0];
 
-if($man eq '-1.00000000000000000') {print "ok 2\n"}
+if(Math::LongDouble::_LDBL_DIG() >= 18) {
+  if($man eq '-1.00000000000000000') {print "ok 2\n"}
+  else {
+    warn "\n2: Got: $man\n";
+    print "not ok 2\n";
+  }
+}
 else {
-  warn "\n2: Got: $man\n";
-  print "not ok 2\n";
+  warn "\n Skipping test 2 - LDBL_DIG is less than 18\n";
+  print "ok 2\n";
 }
 
 $man = (split /e/i, LDtoSTRP($tv, 19))[0];
 
-if($init_prec == 18) {
+if(Math::LongDouble::_LDBL_DIG() == 18) {
   if($man eq '-9.999999999999999999') {print "ok 3\n"}
   else {
     warn "\n3: Got: $man\n";
     print "not ok 3\n";
   }
 }
-else {
+elsif(Math::LongDouble::_LDBL_DIG() > 18) {
   if($man eq '-1.000000000000000000') {print "ok 3\n"}
   else {
     warn "\n3: Got: $man\n";
     print "not ok 3\n";
   }
 }
+else {
+  warn "\n Skipping test 3 - LDBL_DIG is less than 18\n";
+  print "ok 3\n";
+}
+
 
 ld_set_prec(19);
 

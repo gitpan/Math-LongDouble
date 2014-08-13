@@ -2,6 +2,7 @@
 package Math::LongDouble;
 use warnings;
 use strict;
+use POSIX;
 
 require Exporter;
 *import = \&Exporter::import;
@@ -41,8 +42,10 @@ use overload
   '--'    => \&_overload_dec,
 ;
 
-our $VERSION = '0.04';
-$VERSION = eval $VERSION;
+use subs qw(LD_DBL_DIG LD_LDBL_DIG);
+
+our $VERSION = '0.05';
+#$VERSION = eval $VERSION;
 
 DynaLoader::bootstrap Math::LongDouble $Math::LongDouble::VERSION;
 
@@ -51,12 +54,16 @@ DynaLoader::bootstrap Math::LongDouble $Math::LongDouble::VERSION;
     InfLD NaNLD ZeroLD UnityLD is_NaNLD is_InfLD is_ZeroLD STRtoLD LDtoSTR NVtoLD UVtoLD IVtoLD
     LDtoNV LDtoLD cmp_NV
     ld_set_prec ld_get_prec LDtoSTRP
+    LD_DBL_DIG LD_LDBL_DIG
+    ld_max_orig_len ld_min_inter_prec ld_min_inter_base ld_max_orig_base
     );
 
 %Math::LongDouble::EXPORT_TAGS = (all => [qw(
     InfLD NaNLD ZeroLD UnityLD is_NaNLD is_InfLD is_ZeroLD STRtoLD LDtoSTR NVtoLD UVtoLD IVtoLD
     LDtoNV LDtoLD cmp_NV
     ld_set_prec ld_get_prec LDtoSTRP
+    LD_DBL_DIG LD_LDBL_DIG
+    ld_max_orig_len ld_min_inter_prec ld_min_inter_base ld_max_orig_base
     )]);
 
 sub dl_load_flags {0} # Prevent DynaLoader from complaining and croaking
@@ -65,7 +72,7 @@ sub _overload_string {
 
     if(is_ZeroLD($_[0])) {
       return '-0' if is_ZeroLD($_[0]) < 0;
-      return '0'; 
+      return '0';
     }
 
     if(is_NaNLD($_[0])) {return 'NaN'}
@@ -83,15 +90,15 @@ sub _overload_string {
 sub new {
 
     # This function caters for 2 possibilities:
-    # 1) that 'new' has been called OOP style - in which 
+    # 1) that 'new' has been called OOP style - in which
     #    case there will be a maximum of 2 args
     # 2) that 'new' has been called as a function - in
     #    which case there will be a maximum of 1 arg.
     # If there are no args, then we just want to return a
     # Math::LongDouble object that's a NaN.
-    
+
     if(!@_) {return NaNLD(1)}
-   
+
     if(@_ > 2) {die "More than 2 arguments supplied to new()"}
 
     # If 'new' has been called OOP style, the first arg is the string
@@ -103,7 +110,7 @@ sub new {
     if(!ref($_[0]) && $_[0] eq "Math::LongDouble") {
       shift;
       if(!@_) {return NaNLD(1)}
-      } 
+      }
 
     if(@_ > 1) {die "Too many arguments supplied to new() - expected no more than 1"}
 
@@ -120,12 +127,12 @@ sub new {
         if($arg < 0) {return InfLD(-1)}
         return InfLD(1);
       }
+      return STRtoLD($arg);
     }
 
     if(
        $type == 1 || #UV
        $type == 2 || #IV
-       $type == 3 || #NV
        $type == 4    #PV
                    ) {
       return STRtoLD($arg);
@@ -138,6 +145,40 @@ sub new {
     die "Bad argument given to new";
 }
 
+sub LD_DBL_DIG {return _DBL_DIG()}
+sub LD_LDBL_DIG {return _LDBL_DIG()}
+
+sub ld_min_inter_prec {
+    die "Wrong number of args to minimum_intermediate_prec()" if @_ != 3;
+    my $orig_base = shift;
+    my $orig_length = shift;
+    my $to_base = shift;
+    return ceil(1 + ($orig_length * log($orig_base) / log($to_base)));
+}
+
+sub ld_min_inter_base {
+    die "Wrong number of args to minimum_intermediate_base()" if @_ != 3;
+    my $orig_base = shift;
+    my $orig_length = shift;
+    my $to_prec = shift;
+    return ceil(exp($orig_length * log($orig_base) / ($to_prec - 1)));
+}
+
+sub ld_max_orig_len {
+    die "Wrong number of args to maximum_orig_length()" if @_ != 3;
+    my $orig_base = shift;
+    my $to_base = shift;
+    my $to_prec = shift;
+    return floor(1 / (log($orig_base) / log($to_base) / ($to_prec - 1)));
+}
+
+sub ld_max_orig_base {
+    die "Wrong number of args to maximum_orig_base()" if @_ != 3;
+    my $orig_length = shift;
+    my $to_base = shift;
+    my $to_prec = shift;
+    return floor(exp(1 / ($orig_length / log($to_base) / ($to_prec -1))));
+}
 
 1;
 
@@ -156,7 +197,7 @@ Math::LongDouble - perl interface to C's long double operations
   perl were built using MinGW on a MinGW-built perl such as Strawberry
   Perl (where no such problem exists).
   By some means that is still unclear, the 'long double' precision
-  can apparently be reduced to 'double' precision whenever a 
+  can apparently be reduced to 'double' precision whenever a
   Math::LongDouble object is raised to a power (or a square root taken)
   on MSVC-built perls.
   This bug manifests itself in causing some test failures in t/cmp.t
@@ -173,7 +214,7 @@ Math::LongDouble - perl interface to C's long double operations
    use Math::LongDouble qw(:all);
 
    my $arg = 32.1;
-   my $ld1 = Math::LongDouble->new($arg);# Stringify $arg, then assign 
+   my $ld1 = Math::LongDouble->new($arg);# Stringify $arg, then assign
                                           # using C's strtold()
    my $ld2 = NVtoLD($arg); # Assign the NV 32.1 to $ld2.
 
@@ -245,12 +286,12 @@ Math::LongDouble - perl interface to C's long double operations
 
    $ld = ZeroLD($sign);
     If $sign < 0, returns a Math::LongDouble object set to
-    negative zero; else returns a Math::LongDouble object set to 
+    negative zero; else returns a Math::LongDouble object set to
     zero.
 
    $ld = UnityLD($sign);
     If $sign < 0, returns a Math::LongDouble object set to
-    negative one; else returns a Math::LongDouble object set to 
+    negative one; else returns a Math::LongDouble object set to
     one.
 
    ld_set_prec($precision);
@@ -289,7 +330,7 @@ Math::LongDouble - perl interface to C's long double operations
 
 =head1 OTHER FUNCTIONS
 
-   $bool = is_NaNLD($ld); 
+   $bool = is_NaNLD($ld);
     Returns 1 if $ld is a Math::LongDouble NaN.
     Else returns 0
 
@@ -308,7 +349,91 @@ Math::LongDouble - perl interface to C's long double operations
     If the Math::LongDouble object $ld < $nv returns -1.
     If it is > $nv, returns 1.
     Otherwise returns 0.
-     
+
+
+=head1 BASE CONVERSIONS
+
+   $DBL_DIG  = LD_DBL_DIG;  # The value specified by float.h's DBL_DIG.
+                            # Will be set to 0 if float.h doesn't define
+                            # DBL_DIG.
+
+   $LDBL_DIG = LD_LDBL_DIG; # The value specified by float.h's LDBL_DIG.
+                            # Will be set to 0 if float.h doesn't define
+                            # LDBL_DIG.
+
+   $min_prec = ld_min_inter_prec($orig_base, $orig_length, $to_base);
+   $max_len  = ld_max_orig_len($orig_base, $to_base, $to_prec);
+   $min_base = ld_min_inter_base($orig_base, $orig_length, $to_prec);
+   $max_base = ld_max_orig_base($orig_length, $to_base, $to_prec);
+
+   The last 4 of the above functions establish the relationship between
+   $orig_base, $orig_length, $to_base and $to_prec.
+   Given any 3 of those 4, there's a function there to determine the
+   value of the 4th.
+
+   Let's say we have some base 10 floating point numbers comprising 16
+   significant digits, and we want to convert those numbers to a base 2
+   data type (say, 'long double').
+   If we then convert the value of that long double to a 16-digit base 10
+   float are we guaranteed of getting the original value back ?
+   It all depends upon the precision of the 'long double' type, and the
+   min_inter_prec() subroutine will tell you what the minimum
+   required precision is (in order to be sure of getting the original
+   value back). We have:
+
+    $min_prec = ld_min_inter_prec($orig_base, $orig_length, $to_base);
+
+   In our example case that becomes:
+
+    $min_prec = ld_min_inter_prec(10, 16, 2);
+
+   which will set $min_prec to 55.
+   That is, so long as the long double type has a precision of at least 55
+   bits, you can pass 16-digit, base 10, floating point values to it and
+   back again, and be assured of retrieving the original value.
+   (Naturally, this is assuming absence of buggy behaviour, and correct
+   rounding practice.)
+
+   Similarly, you might like to know the maximum significant number of
+   base 10 digits that can be specified, when assigning to (say) a
+   53-bit double. We have:
+
+    $max_len = ld_max_orig_len($orig_base, $to_base, $to_prec);
+
+   For this second example that becomes:
+
+    $max_len = ld_max_orig_len(10, 2, 53);
+
+   which will set $max_len to 15.
+
+   That is, so long as your base 10 float consists of no more than 15
+   siginificant digits, you can pass it to a 53-bit double and back again,
+   and be assured of retrieving the original value.
+   (Again, we assume absence of bugs and correct rounding practice.)
+
+   It is to be expected that
+    ld_max_orig_len(10, 2, $double_prec)
+    and
+    ld_max_orig_len(10, 2, $long_double_prec)
+   will (resp.) return the same values as LD_DBL_DIG and LD_LDBL_DIG.
+   ($double_prec is the precision, in bits, of the C 'double' type,
+   and $long_double_prec is the precision, in bits, of the C 'long double'
+   type.)
+
+   The last 2 of the above subroutines (ie ld_min_inter_base and
+   ld_max_orig_base) are provided mainly for completeness.
+   Normally, there wouldn't be a need to use these last 2 forms ... but
+   who knows ...
+
+   The above examples demonstrate usage in relation to conversion between
+   bases 2 and 10. The functions apply just as well to conversions between
+   bases of any values.
+
+   The Math::MPFR module provides 4 identical functions, prefixed with
+   'mpfr_' instead of 'ld_' (to avoid name clashes).
+   Similarly, it provides constants (prefixed with 'MPFR_' instead of
+   'LD_') that reflect the values of float.h's DBL_DIG and LDBL_DIG.
+
 
 =head1 LICENSE
 

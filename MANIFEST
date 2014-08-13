@@ -4,8 +4,10 @@ LongDouble.pm
 LongDouble.xs
 README
 Changes
+t/aab_basic.t
 t/abs.t
 t/arith.t
+t/base_conversion.t
 t/bool.t
 t/cmp.t
 t/inc_dec.t
@@ -19,3 +21,5 @@ t/stringification.t
 t/trig.t
 
 
+META.yml                                 Module YAML meta-data (added by MakeMaker)
+META.json                                Module JSON meta-data (added by MakeMaker)
