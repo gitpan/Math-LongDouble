@@ -49,22 +49,22 @@ int  _is_inf(long double x) {
      return 0; /* Finite Real */
 }
 
-SV *  _is_zero(pTHX_ long double x) {
-     char * buffer;
+int _is_zero(pTHX_ long double x) {
+    char * buffer;
 
-     if(x != 0.0L) return newSViv(0);
+    if(x != 0.0L) return 0;
 
-     Newx(buffer, 2, char);
+    Newx(buffer, 2, char);
 
-     sprintf(buffer, "%.0Lf", x);
+    sprintf(buffer, "%.0Lf", x);
 
-     if(!strcmp(buffer, "-0")) {
-       Safefree(buffer);
-       return newSViv(-1);
-     }
+    if(!strcmp(buffer, "-0")) {
+      Safefree(buffer);
+      return -1;
+    }
 
-     Safefree(buffer);
-     return newSViv(1);
+    Safefree(buffer);
+    return 1;
 }
 
 long double _get_inf(int sign) {
@@ -85,7 +85,7 @@ SV * InfLD(pTHX_ int sign) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in InfLD() function");
+     if(ld == NULL) croak("Failed to allocate memory in InfLD function");
 
      obj_ref = newSV(0);
      obj = newSVrv(obj_ref, "Math::LongDouble");
@@ -102,7 +102,7 @@ SV * NaNLD(pTHX_ int sign) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in NaNLD() function");
+     if(ld == NULL) croak("Failed to allocate memory in NaNLD function");
 
      obj_ref = newSV(0);
      obj = newSVrv(obj_ref, "Math::LongDouble");
@@ -119,7 +119,7 @@ SV * ZeroLD(pTHX_ int sign) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in ZeroLD() function");
+     if(ld == NULL) croak("Failed to allocate memory in ZeroLD function");
 
      obj_ref = newSV(0);
      obj = newSVrv(obj_ref, "Math::LongDouble");
@@ -137,7 +137,7 @@ SV * UnityLD(pTHX_ int sign) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in UnityLD() function");
+     if(ld == NULL) croak("Failed to allocate memory in UnityLD function");
 
      obj_ref = newSV(0);
      obj = newSVrv(obj_ref, "Math::LongDouble");
@@ -159,16 +159,16 @@ SV * is_NaNLD(pTHX_ SV * b) {
      croak("Invalid argument supplied to Math::LongDouble::isNaNLD function");
 }
 
-SV * is_InfLD(pTHX_ SV * b) {
+int is_InfLD(pTHX_ SV * b) {
      if(sv_isobject(b)) {
        const char *h = HvNAME(SvSTASH(SvRV(b)));
        if(strEQ(h, "Math::LongDouble"))
-         return newSViv(_is_inf(*(INT2PTR(long double *, SvIV(SvRV(b))))));
+         return _is_inf(*(INT2PTR(long double *, SvIV(SvRV(b)))));
      }
      croak("Invalid argument supplied to Math::LongDouble::is_InfLD function");
 }
 
-SV * is_ZeroLD(pTHX_ SV * b) {
+int is_ZeroLD(pTHX_ SV * b) {
      if(sv_isobject(b)) {
        const char *h = HvNAME(SvSTASH(SvRV(b)));
        if(strEQ(h, "Math::LongDouble"))
@@ -183,7 +183,7 @@ SV * STRtoLD(pTHX_ char * str) {
      char * ptr;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in STRtoLD() function");
+     if(ld == NULL) croak("Failed to allocate memory in STRtoLD function");
 
      obj_ref = newSV(0);
      obj = newSVrv(obj_ref, "Math::LongDouble");
@@ -207,7 +207,7 @@ void LDtoSTR(pTHX_ SV * ld) {
           t = *(INT2PTR(long double *, SvIV(SvRV(ld))));
 
           Newx(buffer, 8 + _DIGITS, char);
-          if(buffer == NULL) croak("Failed to allocate memory in LDtoSTR()");
+          if(buffer == NULL) croak("Failed to allocate memory in LDtoSTR");
           sprintf(buffer, "%.*Le", _DIGITS - 1, t);
           ST(0) = sv_2mortal(newSVpv(buffer, 0));
           Safefree(buffer);
@@ -232,7 +232,7 @@ void LDtoSTRP(pTHX_ SV * ld, int decimal_prec) {
           t = *(INT2PTR(long double *, SvIV(SvRV(ld))));
 
           Newx(buffer, 8 + decimal_prec, char);
-          if(buffer == NULL) croak("Failed to allocate memory in LDtoSTRP()");
+          if(buffer == NULL) croak("Failed to allocate memory in LDtoSTRP");
           sprintf(buffer, "%.*Le", decimal_prec - 1, t);
           ST(0) = sv_2mortal(newSVpv(buffer, 0));
           Safefree(buffer);
@@ -248,7 +248,7 @@ SV * NVtoLD(pTHX_ SV * x) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in NVtoLD() function");
+     if(ld == NULL) croak("Failed to allocate memory in NVtoLD function");
 
      obj_ref = newSV(0);
      obj = newSVrv(obj_ref, "Math::LongDouble");
@@ -265,7 +265,7 @@ SV * UVtoLD(pTHX_ SV * x) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in UVtoLD() function");
+     if(ld == NULL) croak("Failed to allocate memory in UVtoLD function");
 
      obj_ref = newSV(0);
      obj = newSVrv(obj_ref, "Math::LongDouble");
@@ -282,7 +282,7 @@ SV * IVtoLD(pTHX_ SV * x) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in IVtoLD() function");
+     if(ld == NULL) croak("Failed to allocate memory in IVtoLD function");
 
      obj_ref = newSV(0);
      obj = newSVrv(obj_ref, "Math::LongDouble");
@@ -304,7 +304,7 @@ SV * _overload_add(pTHX_ SV * a, SV * b, SV * third) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in _overload_add() function");
+     if(ld == NULL) croak("Failed to allocate memory in _overload_add function");
 
      obj_ref = newSV(0);
      obj = newSVrv(obj_ref, "Math::LongDouble");
@@ -329,7 +329,7 @@ SV * _overload_mul(pTHX_ SV * a, SV * b, SV * third) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in _overload_mul() function");
+     if(ld == NULL) croak("Failed to allocate memory in _overload_mul function");
 
      obj_ref = newSV(0);
      obj = newSVrv(obj_ref, "Math::LongDouble");
@@ -353,7 +353,7 @@ SV * _overload_sub(pTHX_ SV * a, SV * b, SV * third) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in _overload_sub() function");
+     if(ld == NULL) croak("Failed to allocate memory in _overload_sub function");
 
      obj_ref = newSV(0);
      obj = newSVrv(obj_ref, "Math::LongDouble");
@@ -386,7 +386,7 @@ SV * _overload_div(pTHX_ SV * a, SV * b, SV * third) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in _overload_div() function");
+     if(ld == NULL) croak("Failed to allocate memory in _overload_div function");
 
      obj_ref = newSV(0);
      obj = newSVrv(obj_ref, "Math::LongDouble");
@@ -583,7 +583,7 @@ SV * _overload_copy(pTHX_ SV * a, SV * b, SV * third) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in _overload_copy() function");
+     if(ld == NULL) croak("Failed to allocate memory in _overload_copy function");
 
      *ld = *(INT2PTR(long double *, SvIV(SvRV(a))));
 
@@ -603,7 +603,7 @@ SV * LDtoLD(pTHX_ SV * a) {
        if(strEQ(h, "Math::LongDouble")) {
 
          Newx(ld, 1, long double);
-         if(ld == NULL) croak("Failed to allocate memory in LDtoLD() function");
+         if(ld == NULL) croak("Failed to allocate memory in LDtoLD function");
 
          *ld = *(INT2PTR(long double *, SvIV(SvRV(a))));
 
@@ -640,7 +640,7 @@ SV * _overload_abs(pTHX_ SV * a, SV * b, SV * third) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in _overload_abs() function");
+     if(ld == NULL) croak("Failed to allocate memory in _overload_abs function");
 
      obj_ref = newSV(0);
      obj = newSVrv(obj_ref, "Math::LongDouble");
@@ -649,7 +649,7 @@ SV * _overload_abs(pTHX_ SV * a, SV * b, SV * third) {
      SvREADONLY_on(obj);
 
      *ld = *(INT2PTR(long double *, SvIV(SvRV(a))));
-     if(SvIV(_is_zero(aTHX_ *ld)) < 0 || *ld < 0 ) *ld *= -1.0L;
+     if(_is_zero(aTHX_ *ld) < 0 || *ld < 0 ) *ld *= -1.0L;
      return obj_ref;
 }
 
@@ -687,7 +687,7 @@ SV * _overload_int(pTHX_ SV * a, SV * b, SV * third) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in _overload_int() function");
+     if(ld == NULL) croak("Failed to allocate memory in _overload_int function");
 
      *ld = *(INT2PTR(long double *, SvIV(SvRV(a))));
 
@@ -707,7 +707,7 @@ SV * _overload_sqrt(pTHX_ SV * a, SV * b, SV * third) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in _overload_sqrt() function");
+     if(ld == NULL) croak("Failed to allocate memory in _overload_sqrt function");
 
      *ld = sqrtl(*(INT2PTR(long double *, SvIV(SvRV(a)))));
 
@@ -724,7 +724,7 @@ SV * _overload_log(pTHX_ SV * a, SV * b, SV * third) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in _overload_log() function");
+     if(ld == NULL) croak("Failed to allocate memory in _overload_log function");
 
      *ld = logl(*(INT2PTR(long double *, SvIV(SvRV(a)))));
 
@@ -742,7 +742,7 @@ SV * _overload_exp(pTHX_ SV * a, SV * b, SV * third) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in _overload_exp() function");
+     if(ld == NULL) croak("Failed to allocate memory in _overload_exp function");
 
      *ld = expl(*(INT2PTR(long double *, SvIV(SvRV(a)))));
 
@@ -760,7 +760,7 @@ SV * _overload_sin(pTHX_ SV * a, SV * b, SV * third) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in _overload_sin() function");
+     if(ld == NULL) croak("Failed to allocate memory in _overload_sin function");
 
      *ld = sinl(*(INT2PTR(long double *, SvIV(SvRV(a)))));
 
@@ -778,7 +778,7 @@ SV * _overload_cos(pTHX_ SV * a, SV * b, SV * third) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in _overload_cos() function");
+     if(ld == NULL) croak("Failed to allocate memory in _overload_cos function");
 
      *ld = cosl(*(INT2PTR(long double *, SvIV(SvRV(a)))));
 
@@ -796,7 +796,7 @@ SV * _overload_atan2(pTHX_ SV * a, SV * b, SV * third) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in _overload_atan2() function");
+     if(ld == NULL) croak("Failed to allocate memory in _overload_atan2 function");
 
      *ld = atan2l(*(INT2PTR(long double *, SvIV(SvRV(a)))), *(INT2PTR(long double *, SvIV(SvRV(b)))));
 
@@ -832,7 +832,7 @@ SV * _overload_pow(pTHX_ SV * a, SV * b, SV * third) {
      SV * obj_ref, * obj;
 
      Newx(ld, 1, long double);
-     if(ld == NULL) croak("Failed to allocate memory in _overload_pow() function");
+     if(ld == NULL) croak("Failed to allocate memory in _overload_pow function");
 
      obj_ref = newSV(0);
      obj = newSVrv(obj_ref, "Math::LongDouble");
@@ -893,10 +893,26 @@ SV * _DBL_DIG(pTHX) {
 #endif
 }
 
+SV * _LDBL_MANT_DIG(pTHX) {
+#ifdef LDBL_MANT_DIG
+     return newSViv(LDBL_MANT_DIG);
+#else
+     return newSViv(0);
+#endif
+}
+
+SV * _DBL_MANT_DIG(pTHX) {
+#ifdef DBL_MANT_DIG
+     return newSViv(DBL_MANT_DIG);
+#else
+     return newSViv(0);
+#endif
+}
+
 SV * _get_xs_version(pTHX) {
      return newSVpv(XS_VERSION, 0);
 }
-MODULE = Math::LongDouble	PACKAGE = Math::LongDouble
+MODULE = Math::LongDouble  PACKAGE = Math::LongDouble
 
 PROTOTYPES: DISABLE
 
@@ -904,18 +920,18 @@ PROTOTYPES: DISABLE
 void
 ld_set_prec (x)
 	int	x
-	PREINIT:
-	I32* temp;
-	PPCODE:
-	temp = PL_markstack_ptr++;
-	ld_set_prec(aTHX_ x);
-	if (PL_markstack_ptr != temp) {
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        ld_set_prec(aTHX_ x);
+        if (PL_markstack_ptr != temp) {
           /* truly void, because dXSARGS not invoked */
-	  PL_markstack_ptr = temp;
-	  XSRETURN_EMPTY; /* return empty stack */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
         }
         /* must have used dXSARGS; list context implied */
-	return; /* assume stack size is correct */
+        return; /* assume stack size is correct */
 
 SV *
 InfLD (sign)
@@ -952,14 +968,14 @@ CODE:
   RETVAL = is_NaNLD (aTHX_ b);
 OUTPUT:  RETVAL
 
-SV *
+int
 is_InfLD (b)
 	SV *	b
 CODE:
   RETVAL = is_InfLD (aTHX_ b);
 OUTPUT:  RETVAL
 
-SV *
+int
 is_ZeroLD (b)
 	SV *	b
 CODE:
@@ -976,35 +992,35 @@ OUTPUT:  RETVAL
 void
 LDtoSTR (ld)
 	SV *	ld
-	PREINIT:
-	I32* temp;
-	PPCODE:
-	temp = PL_markstack_ptr++;
-	LDtoSTR(aTHX_ ld);
-	if (PL_markstack_ptr != temp) {
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        LDtoSTR(aTHX_ ld);
+        if (PL_markstack_ptr != temp) {
           /* truly void, because dXSARGS not invoked */
-	  PL_markstack_ptr = temp;
-	  XSRETURN_EMPTY; /* return empty stack */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
         }
         /* must have used dXSARGS; list context implied */
-	return; /* assume stack size is correct */
+        return; /* assume stack size is correct */
 
 void
 LDtoSTRP (ld, decimal_prec)
 	SV *	ld
 	int	decimal_prec
-	PREINIT:
-	I32* temp;
-	PPCODE:
-	temp = PL_markstack_ptr++;
-	LDtoSTRP(aTHX_ ld, decimal_prec);
-	if (PL_markstack_ptr != temp) {
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        LDtoSTRP(aTHX_ ld, decimal_prec);
+        if (PL_markstack_ptr != temp) {
           /* truly void, because dXSARGS not invoked */
-	  PL_markstack_ptr = temp;
-	  XSRETURN_EMPTY; /* return empty stack */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
         }
         /* must have used dXSARGS; list context implied */
-	return; /* assume stack size is correct */
+        return; /* assume stack size is correct */
 
 SV *
 NVtoLD (x)
@@ -1213,18 +1229,18 @@ OUTPUT:  RETVAL
 void
 DESTROY (rop)
 	SV *	rop
-	PREINIT:
-	I32* temp;
-	PPCODE:
-	temp = PL_markstack_ptr++;
-	DESTROY(aTHX_ rop);
-	if (PL_markstack_ptr != temp) {
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        DESTROY(aTHX_ rop);
+        if (PL_markstack_ptr != temp) {
           /* truly void, because dXSARGS not invoked */
-	  PL_markstack_ptr = temp;
-	  XSRETURN_EMPTY; /* return empty stack */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
         }
         /* must have used dXSARGS; list context implied */
-	return; /* assume stack size is correct */
+        return; /* assume stack size is correct */
 
 SV *
 _overload_abs (a, b, third)
@@ -1375,6 +1391,20 @@ SV *
 _DBL_DIG ()
 CODE:
   RETVAL = _DBL_DIG (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_LDBL_MANT_DIG ()
+CODE:
+  RETVAL = _LDBL_MANT_DIG (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_DBL_MANT_DIG ()
+CODE:
+  RETVAL = _DBL_MANT_DIG (aTHX);
 OUTPUT:  RETVAL
 
 

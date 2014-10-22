@@ -44,7 +44,7 @@ use overload
 
 use subs qw(LD_DBL_DIG LD_LDBL_DIG);
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 #$VERSION = eval $VERSION;
 
 DynaLoader::bootstrap Math::LongDouble $Math::LongDouble::VERSION;
@@ -54,7 +54,7 @@ DynaLoader::bootstrap Math::LongDouble $Math::LongDouble::VERSION;
     InfLD NaNLD ZeroLD UnityLD is_NaNLD is_InfLD is_ZeroLD STRtoLD LDtoSTR NVtoLD UVtoLD IVtoLD
     LDtoNV LDtoLD cmp_NV
     ld_set_prec ld_get_prec LDtoSTRP
-    LD_DBL_DIG LD_LDBL_DIG
+    LD_DBL_DIG LD_LDBL_DIG LD_DBL_MANT_DIG LD_LDBL_MANT_DIG
     ld_max_orig_len ld_min_inter_prec ld_min_inter_base ld_max_orig_base
     );
 
@@ -62,7 +62,7 @@ DynaLoader::bootstrap Math::LongDouble $Math::LongDouble::VERSION;
     InfLD NaNLD ZeroLD UnityLD is_NaNLD is_InfLD is_ZeroLD STRtoLD LDtoSTR NVtoLD UVtoLD IVtoLD
     LDtoNV LDtoLD cmp_NV
     ld_set_prec ld_get_prec LDtoSTRP
-    LD_DBL_DIG LD_LDBL_DIG
+    LD_DBL_DIG LD_LDBL_DIG LD_DBL_MANT_DIG LD_LDBL_MANT_DIG
     ld_max_orig_len ld_min_inter_prec ld_min_inter_base ld_max_orig_base
     )]);
 
@@ -145,8 +145,10 @@ sub new {
     die "Bad argument given to new";
 }
 
-sub LD_DBL_DIG {return _DBL_DIG()}
-sub LD_LDBL_DIG {return _LDBL_DIG()}
+sub LD_DBL_DIG       {return  _DBL_DIG()}
+sub LD_LDBL_DIG      {return _LDBL_DIG()}
+sub LD_DBL_MANT_DIG  {return  _DBL_MANT_DIG()}
+sub LD_LDBL_MANT_DIG {return _LDBL_MANT_DIG()}
 
 sub ld_min_inter_prec {
     die "Wrong number of args to minimum_intermediate_prec()" if @_ != 3;
@@ -361,6 +363,16 @@ Math::LongDouble - perl interface to C's long double operations
                             # Will be set to 0 if float.h doesn't define
                             # LDBL_DIG.
 
+   $DBL_MANT_DIG  = LD_DBL_MANT_DIG;
+                            # The value specified by float.h's
+                            # DBL_MANT_DIG.Will be set to 0 if float.h
+                            # doesn't define DBL_MANT_DIG.
+
+   $LDBL_MANT_DIG = LD_LDBL_MANT_DIG;
+                            # The value specified by float.h's
+                            # LDBL_MANT_DIG.Will be set to 0 if float.h
+                            # doesn't define LDBL_MANT_DIG.
+
    $min_prec = ld_min_inter_prec($orig_base, $orig_length, $to_base);
    $max_len  = ld_max_orig_len($orig_base, $to_base, $to_prec);
    $min_base = ld_min_inter_base($orig_base, $orig_length, $to_prec);
@@ -439,7 +451,7 @@ Math::LongDouble - perl interface to C's long double operations
 
    This program is free software; you may redistribute it and/or modify
    it under the same terms as Perl itself.
-   Copyright 2012, 2013 Sisyphus
+   Copyright 2012-14, Sisyphus
 
 =head1 AUTHOR
 

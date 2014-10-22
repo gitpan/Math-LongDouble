@@ -84,7 +84,8 @@ my $len = length((split /e/i, LDtoSTR($tv))[0]);
 
 if($len == 20) {print "ok 5\n"} # 19 digits plus decimal point
 else {
-  warn "\nLength: $len\n";
+  warn "\nMant: ", (split /e/i, LDtoSTR($tv))[0], "\n";
+  warn "Length: $len\n";
   print "not ok 5\n";
 }
 

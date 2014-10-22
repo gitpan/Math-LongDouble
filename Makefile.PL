@@ -6,15 +6,18 @@ unless($@) {
        "           on ActivePerl. (See the README file.)\n\n";
 }
 
+my $defines = $] < 5.008 ? "-DOLDPERL" : "-DNEWPERL";
+
 my %options = %{
 {
-  'NAME' => 'Math::LongDouble',
-  'LIBS' => [
+  NAME => 'Math::LongDouble',
+  LIBS => [
     '-lm'
   ],
-  'INC' => '',
-  'LICENSE'  => 'perl',
-  'VERSION_FROM' => 'LongDouble.pm',
+  INC => '',
+  LICENSE  => 'perl',
+  VERSION_FROM => 'LongDouble.pm',
+  DEFINE   => $defines,
   META_MERGE => {
    'meta-spec' => { version => 2 },
     resources => {
