@@ -29,6 +29,34 @@ int _DIGITS = LDBL_DIG;
 int _DIGITS = 18;
 #endif
 
+#if defined(__GNUC__)
+# if defined(__GNUC_PATCHLEVEL__)
+#  define __GNUC_VERSION__ (__GNUC__ * 10000 \
+                            + __GNUC_MINOR__ * 100 \
+                            + __GNUC_PATCHLEVEL__)
+# else
+#  define __GNUC_VERSION__ (__GNUC__ * 10000 \
+                            + __GNUC_MINOR__ * 100)
+# endif
+#if __GNUC_VERSION__ < 40600
+#define NO_SINCOSL 1 /* Is this too restrictive */
+#endif
+#endif
+
+/*
+None of my mingw.org compilers provide the sincosl function, so
+I exclude that function when those compilers are in use.
+Is this being overly restrictive ? (I suspect so.)
+*/
+#if defined(__MINGW32__) && !defined(__MINGW64_VERSION_MAJOR) /* mingw.org compiler */
+#ifndef NO_SINCOSL
+#define NO_SINCOSL 2
+#endif
+#endif
+
+
+typedef long double ldbl;
+
 void ld_set_prec(pTHX_ int x) {
     if(x < 1)croak("1st arg (precision) to ld_set_prec must be at least 1");
     _DIGITS = x;
@@ -74,9 +102,8 @@ long double _get_inf(int sign) {
     return ret;
 }
 
-long double _get_nan(int sign) {
+long double _get_nan(void) {
      long double inf = _get_inf(1);
-     if(sign < 1) return -(inf / inf);
      return inf / inf;
 }
 
@@ -97,7 +124,7 @@ SV * InfLD(pTHX_ int sign) {
      return obj_ref;
 }
 
-SV * NaNLD(pTHX_ int sign) {
+SV * NaNLD(pTHX) {
      long double * ld;
      SV * obj_ref, * obj;
 
@@ -107,7 +134,7 @@ SV * NaNLD(pTHX_ int sign) {
      obj_ref = newSV(0);
      obj = newSVrv(obj_ref, "Math::LongDouble");
 
-     *ld = _get_nan(sign);
+     *ld = _get_nan();
 
      sv_setiv(obj, INT2PTR(IV,ld));
      SvREADONLY_on(obj);
@@ -312,9 +339,29 @@ SV * _overload_add(pTHX_ SV * a, SV * b, SV * third) {
      sv_setiv(obj, INT2PTR(IV,ld));
      SvREADONLY_on(obj);
 
+    if(SvUOK(b)) {
+       *ld = *(INT2PTR(ldbl *, SvIV(SvRV(a)))) + (ldbl)SvUV(b);
+        return obj_ref;
+    }
+
+    if(SvIOK(b)) {
+       *ld = *(INT2PTR(ldbl *, SvIV(SvRV(a)))) + (ldbl)SvIV(b);
+        return obj_ref;
+    }
+
+    if(SvNOK(b)) {
+       *ld = *(INT2PTR(ldbl *, SvIV(SvRV(a)))) + (ldbl)SvNV(b);
+        return obj_ref;
+    }
+
+    if(SvPOK(b)) {
+       *ld = *(INT2PTR(ldbl *, SvIV(SvRV(a)))) + strtold(SvPV_nolen(b), NULL);
+        return obj_ref;
+    }
+
     if(sv_isobject(b)) {
-       const char *h = HvNAME(SvSTASH(SvRV(b)));
-       if(strEQ(h, "Math::LongDouble")) {
+      const char *h = HvNAME(SvSTASH(SvRV(b)));
+      if(strEQ(h, "Math::LongDouble")) {
         *ld = *(INT2PTR(long double *, SvIV(SvRV(a)))) + *(INT2PTR(long double *, SvIV(SvRV(b))));
         return obj_ref;
       }
@@ -337,9 +384,29 @@ SV * _overload_mul(pTHX_ SV * a, SV * b, SV * third) {
      sv_setiv(obj, INT2PTR(IV,ld));
      SvREADONLY_on(obj);
 
+    if(SvUOK(b)) {
+       *ld = *(INT2PTR(ldbl *, SvIV(SvRV(a)))) * (ldbl)SvUV(b);
+        return obj_ref;
+    }
+
+    if(SvIOK(b)) {
+       *ld = *(INT2PTR(ldbl *, SvIV(SvRV(a)))) * (ldbl)SvIV(b);
+        return obj_ref;
+    }
+
+    if(SvNOK(b)) {
+       *ld = *(INT2PTR(ldbl *, SvIV(SvRV(a)))) * (ldbl)SvNV(b);
+        return obj_ref;
+    }
+
+    if(SvPOK(b)) {
+       *ld = *(INT2PTR(ldbl *, SvIV(SvRV(a)))) * strtold(SvPV_nolen(b), NULL);
+        return obj_ref;
+    }
+
     if(sv_isobject(b)) {
-       const char *h = HvNAME(SvSTASH(SvRV(b)));
-       if(strEQ(h, "Math::LongDouble")) {
+      const char *h = HvNAME(SvSTASH(SvRV(b)));
+      if(strEQ(h, "Math::LongDouble")) {
         *ld = *(INT2PTR(long double *, SvIV(SvRV(a)))) * *(INT2PTR(long double *, SvIV(SvRV(b))));
         return obj_ref;
       }
@@ -361,21 +428,47 @@ SV * _overload_sub(pTHX_ SV * a, SV * b, SV * third) {
      sv_setiv(obj, INT2PTR(IV,ld));
      SvREADONLY_on(obj);
 
+    if(SvUOK(b)) {
+       if(third == &PL_sv_yes) *ld = (ldbl)SvUV(b) - *(INT2PTR(ldbl *, SvIV(SvRV(a))));
+       else *ld = *(INT2PTR(ldbl *, SvIV(SvRV(a)))) - (ldbl)SvUV(b);
+       return obj_ref;
+    }
+
+    if(SvIOK(b)) {
+       if(third == &PL_sv_yes) *ld = (ldbl)SvIV(b) - *(INT2PTR(ldbl *, SvIV(SvRV(a))));
+       else *ld = *(INT2PTR(ldbl *, SvIV(SvRV(a)))) - (ldbl)SvIV(b);
+       return obj_ref;
+    }
+
+    if(SvNOK(b)) {
+       if(third == &PL_sv_yes) *ld = (ldbl)SvNV(b) - *(INT2PTR(ldbl *, SvIV(SvRV(a))));
+       else *ld = *(INT2PTR(ldbl *, SvIV(SvRV(a)))) - (ldbl)SvNV(b);
+       return obj_ref;
+    }
+
+    if(SvPOK(b)) {
+       if(third == &PL_sv_yes) *ld = strtold(SvPV_nolen(b), NULL) - *(INT2PTR(ldbl *, SvIV(SvRV(a))));
+       else *ld = *(INT2PTR(ldbl *, SvIV(SvRV(a)))) - strtold(SvPV_nolen(b), NULL);
+       return obj_ref;
+    }
+
     if(sv_isobject(b)) {
-       const char *h = HvNAME(SvSTASH(SvRV(b)));
-       if(strEQ(h, "Math::LongDouble")) {
+      const char *h = HvNAME(SvSTASH(SvRV(b)));
+      if(strEQ(h, "Math::LongDouble")) {
         *ld = *(INT2PTR(long double *, SvIV(SvRV(a)))) - *(INT2PTR(long double *, SvIV(SvRV(b))));
         return obj_ref;
       }
       croak("Invalid object supplied to Math::LongDouble::_overload_sub function");
     }
 
+    /*
     else {
       if(third == &PL_sv_yes) {
         *ld = *(INT2PTR(long double *, SvIV(SvRV(a)))) * -1.0L;
         return obj_ref;
       }
     }
+    */
 
     croak("Invalid argument supplied to Math::LongDouble::_overload_sub function");
 
@@ -394,9 +487,33 @@ SV * _overload_div(pTHX_ SV * a, SV * b, SV * third) {
      sv_setiv(obj, INT2PTR(IV,ld));
      SvREADONLY_on(obj);
 
+    if(SvUOK(b)) {
+       if(third == &PL_sv_yes) *ld = (ldbl)SvUV(b) / *(INT2PTR(ldbl *, SvIV(SvRV(a))));
+       else *ld = *(INT2PTR(ldbl *, SvIV(SvRV(a)))) / (ldbl)SvUV(b);
+       return obj_ref;
+    }
+
+    if(SvIOK(b)) {
+       if(third == &PL_sv_yes) *ld = (ldbl)SvIV(b) / *(INT2PTR(ldbl *, SvIV(SvRV(a))));
+       else *ld = *(INT2PTR(ldbl *, SvIV(SvRV(a)))) / (ldbl)SvIV(b);
+       return obj_ref;
+    }
+
+    if(SvNOK(b)) {
+       if(third == &PL_sv_yes) *ld = (ldbl)SvNV(b) / *(INT2PTR(ldbl *, SvIV(SvRV(a))));
+       else *ld = *(INT2PTR(ldbl *, SvIV(SvRV(a)))) / (ldbl)SvNV(b);
+       return obj_ref;
+    }
+
+    if(SvPOK(b)) {
+       if(third == &PL_sv_yes) *ld = strtold(SvPV_nolen(b), NULL) / *(INT2PTR(ldbl *, SvIV(SvRV(a))));
+       else *ld = *(INT2PTR(ldbl *, SvIV(SvRV(a)))) / strtold(SvPV_nolen(b), NULL);
+       return obj_ref;
+    }
+
     if(sv_isobject(b)) {
-       const char *h = HvNAME(SvSTASH(SvRV(b)));
-       if(strEQ(h, "Math::LongDouble")) {
+      const char *h = HvNAME(SvSTASH(SvRV(b)));
+      if(strEQ(h, "Math::LongDouble")) {
         *ld = *(INT2PTR(long double *, SvIV(SvRV(a)))) / *(INT2PTR(long double *, SvIV(SvRV(b))));
         return obj_ref;
       }
@@ -406,27 +523,69 @@ SV * _overload_div(pTHX_ SV * a, SV * b, SV * third) {
 }
 
 SV * _overload_equiv(pTHX_ SV * a, SV * b, SV * third) {
-     if(sv_isobject(b)) {
-        const char *h = HvNAME(SvSTASH(SvRV(b)));
-        if(strEQ(h, "Math::LongDouble")) {
-         if(*(INT2PTR(long double *, SvIV(SvRV(a)))) == *(INT2PTR(long double *, SvIV(SvRV(b))))) return newSViv(1);
-         return newSViv(0);
-       }
-       croak("Invalid object supplied to Math::LongDouble::_overload_equiv function");
-     }
-     croak("Invalid argument supplied to Math::LongDouble::_overload_equiv function");
+
+    if(SvUOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) == (ldbl)SvUV(b)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(SvIOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) == (ldbl)SvIV(b)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(SvNOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) == (ldbl)SvNV(b)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(SvPOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) == strtold(SvPV_nolen(b), NULL)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(sv_isobject(b)) {
+      const char *h = HvNAME(SvSTASH(SvRV(b)));
+      if(strEQ(h, "Math::LongDouble")) {
+        if(*(INT2PTR(long double *, SvIV(SvRV(a)))) == *(INT2PTR(long double *, SvIV(SvRV(b))))) return newSViv(1);
+        return newSViv(0);
+      }
+      croak("Invalid object supplied to Math::LongDouble::_overload_equiv function");
+    }
+    croak("Invalid argument supplied to Math::LongDouble::_overload_equiv function");
 }
 
 SV * _overload_not_equiv(pTHX_ SV * a, SV * b, SV * third) {
-     if(sv_isobject(b)) {
-        const char *h = HvNAME(SvSTASH(SvRV(b)));
-        if(strEQ(h, "Math::LongDouble")) {
-         if(*(INT2PTR(long double *, SvIV(SvRV(a)))) == *(INT2PTR(long double *, SvIV(SvRV(b))))) return newSViv(0);
-         return newSViv(1);
-       }
-       croak("Invalid object supplied to Math::LongDouble::_overload_not_equiv function");
-     }
-     croak("Invalid argument supplied to Math::LongDouble::_overload_not_equiv function");
+
+    if(SvUOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) != (ldbl)SvUV(b)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(SvIOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) != (ldbl)SvIV(b)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(SvNOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) != (ldbl)SvNV(b)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(SvPOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) != strtold(SvPV_nolen(b), NULL)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(sv_isobject(b)) {
+      const char *h = HvNAME(SvSTASH(SvRV(b)));
+      if(strEQ(h, "Math::LongDouble")) {
+        if(*(INT2PTR(long double *, SvIV(SvRV(a)))) == *(INT2PTR(long double *, SvIV(SvRV(b))))) return newSViv(0);
+        return newSViv(1);
+      }
+      croak("Invalid object supplied to Math::LongDouble::_overload_not_equiv function");
+    }
+    croak("Invalid argument supplied to Math::LongDouble::_overload_not_equiv function");
 }
 
 SV * _overload_true(pTHX_ SV * a, SV * b, SV * third) {
@@ -444,7 +603,27 @@ SV * _overload_not(pTHX_ SV * a, SV * b, SV * third) {
 
 SV * _overload_add_eq(pTHX_ SV * a, SV * b, SV * third) {
 
-     SvREFCNT_inc(a);
+    SvREFCNT_inc(a);
+
+    if(SvUOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) += (ldbl)SvUV(b);
+        return a;
+    }
+
+    if(SvIOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) += (ldbl)SvIV(b);
+        return a;
+    }
+
+    if(SvNOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) += (ldbl)SvNV(b);
+        return a;
+    }
+
+    if(SvPOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) += strtold(SvPV_nolen(b), NULL);
+        return a;
+    }
 
     if(sv_isobject(b)) {
        const char *h = HvNAME(SvSTASH(SvRV(b)));
@@ -461,7 +640,27 @@ SV * _overload_add_eq(pTHX_ SV * a, SV * b, SV * third) {
 
 SV * _overload_mul_eq(pTHX_ SV * a, SV * b, SV * third) {
 
-     SvREFCNT_inc(a);
+    SvREFCNT_inc(a);
+
+    if(SvUOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) *= (ldbl)SvUV(b);
+        return a;
+    }
+
+    if(SvIOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) *= (ldbl)SvIV(b);
+        return a;
+    }
+
+    if(SvNOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) *= (ldbl)SvNV(b);
+        return a;
+    }
+
+    if(SvPOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) *= strtold(SvPV_nolen(b), NULL);
+        return a;
+    }
 
     if(sv_isobject(b)) {
        const char *h = HvNAME(SvSTASH(SvRV(b)));
@@ -478,7 +677,27 @@ SV * _overload_mul_eq(pTHX_ SV * a, SV * b, SV * third) {
 
 SV * _overload_sub_eq(pTHX_ SV * a, SV * b, SV * third) {
 
-     SvREFCNT_inc(a);
+    SvREFCNT_inc(a);
+
+    if(SvUOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) -= (ldbl)SvUV(b);
+        return a;
+    }
+
+    if(SvIOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) -= (ldbl)SvIV(b);
+        return a;
+    }
+
+    if(SvNOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) -= (ldbl)SvNV(b);
+        return a;
+    }
+
+    if(SvPOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) -= strtold(SvPV_nolen(b), NULL);
+        return a;
+    }
 
     if(sv_isobject(b)) {
        const char *h = HvNAME(SvSTASH(SvRV(b)));
@@ -495,7 +714,27 @@ SV * _overload_sub_eq(pTHX_ SV * a, SV * b, SV * third) {
 
 SV * _overload_div_eq(pTHX_ SV * a, SV * b, SV * third) {
 
-     SvREFCNT_inc(a);
+    SvREFCNT_inc(a);
+
+    if(SvUOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) /= (ldbl)SvUV(b);
+        return a;
+    }
+
+    if(SvIOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) /= (ldbl)SvIV(b);
+        return a;
+    }
+
+    if(SvNOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) /= (ldbl)SvNV(b);
+        return a;
+    }
+
+    if(SvPOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) /= strtold(SvPV_nolen(b), NULL);
+        return a;
+    }
 
     if(sv_isobject(b)) {
        const char *h = HvNAME(SvSTASH(SvRV(b)));
@@ -512,57 +751,165 @@ SV * _overload_div_eq(pTHX_ SV * a, SV * b, SV * third) {
 
 SV * _overload_lt(pTHX_ SV * a, SV * b, SV * third) {
 
-     if(sv_isobject(b)) {
-       const char *h = HvNAME(SvSTASH(SvRV(b)));
-       if(strEQ(h, "Math::LongDouble")) {
-         if(*(INT2PTR(long double *, SvIV(SvRV(a)))) < *(INT2PTR(long double *, SvIV(SvRV(b))))) return newSViv(1);
-         return newSViv(0);
-       }
-       croak("Invalid object supplied to Math::LongDouble::_overload_lt function");
-     }
-     croak("Invalid argument supplied to Math::LongDouble::_overload_lt function");
+    if(SvUOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) < (ldbl)SvUV(b)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(SvIOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) < (ldbl)SvIV(b)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(SvNOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) < (ldbl)SvNV(b)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(SvPOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) < strtold(SvPV_nolen(b), NULL)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(sv_isobject(b)) {
+      const char *h = HvNAME(SvSTASH(SvRV(b)));
+      if(strEQ(h, "Math::LongDouble")) {
+        if(*(INT2PTR(long double *, SvIV(SvRV(a)))) < *(INT2PTR(long double *, SvIV(SvRV(b))))) return newSViv(1);
+        return newSViv(0);
+      }
+      croak("Invalid object supplied to Math::LongDouble::_overload_lt function");
+    }
+    croak("Invalid argument supplied to Math::LongDouble::_overload_lt function");
 }
 
 SV * _overload_gt(pTHX_ SV * a, SV * b, SV * third) {
 
-     if(sv_isobject(b)) {
-       const char *h = HvNAME(SvSTASH(SvRV(b)));
-       if(strEQ(h, "Math::LongDouble")) {
-         if(*(INT2PTR(long double *, SvIV(SvRV(a)))) > *(INT2PTR(long double *, SvIV(SvRV(b))))) return newSViv(1);
-         return newSViv(0);
-       }
-       croak("Invalid object supplied to Math::LongDouble::_overload_gt function");
-     }
-     croak("Invalid argument supplied to Math::LongDouble::_overload_gt function");
+    if(SvUOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) > (ldbl)SvUV(b)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(SvIOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) > (ldbl)SvIV(b)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(SvNOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) > (ldbl)SvNV(b)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(SvPOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) > strtold(SvPV_nolen(b), NULL)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(sv_isobject(b)) {
+      const char *h = HvNAME(SvSTASH(SvRV(b)));
+      if(strEQ(h, "Math::LongDouble")) {
+        if(*(INT2PTR(long double *, SvIV(SvRV(a)))) > *(INT2PTR(long double *, SvIV(SvRV(b))))) return newSViv(1);
+        return newSViv(0);
+      }
+      croak("Invalid object supplied to Math::LongDouble::_overload_gt function");
+    }
+    croak("Invalid argument supplied to Math::LongDouble::_overload_gt function");
 }
 
 SV * _overload_lte(pTHX_ SV * a, SV * b, SV * third) {
 
-     if(sv_isobject(b)) {
-       const char *h = HvNAME(SvSTASH(SvRV(b)));
-       if(strEQ(h, "Math::LongDouble")) {
-         if(*(INT2PTR(long double *, SvIV(SvRV(a)))) <= *(INT2PTR(long double *, SvIV(SvRV(b))))) return newSViv(1);
-         return newSViv(0);
-       }
-       croak("Invalid object supplied to Math::LongDouble::_overload_lte function");
-     }
-     croak("Invalid argument supplied to Math::LongDouble::_overload_lte function");
+    if(SvUOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) <= (ldbl)SvUV(b)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(SvIOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) <= (ldbl)SvIV(b)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(SvNOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) <= (ldbl)SvNV(b)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(SvPOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) <= strtold(SvPV_nolen(b), NULL)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(sv_isobject(b)) {
+      const char *h = HvNAME(SvSTASH(SvRV(b)));
+      if(strEQ(h, "Math::LongDouble")) {
+        if(*(INT2PTR(long double *, SvIV(SvRV(a)))) <= *(INT2PTR(long double *, SvIV(SvRV(b))))) return newSViv(1);
+        return newSViv(0);
+      }
+      croak("Invalid object supplied to Math::LongDouble::_overload_lte function");
+    }
+    croak("Invalid argument supplied to Math::LongDouble::_overload_lte function");
 }
 
 SV * _overload_gte(pTHX_ SV * a, SV * b, SV * third) {
 
-     if(sv_isobject(b)) {
-       const char *h = HvNAME(SvSTASH(SvRV(b)));
-       if(strEQ(h, "Math::LongDouble")) {
-         if(*(INT2PTR(long double *, SvIV(SvRV(a)))) >= *(INT2PTR(long double *, SvIV(SvRV(b))))) return newSViv(1);
-         return newSViv(0);
-       }
-       croak("Invalid object supplied to Math::LongDouble::_overload_gte function");
-     }
-     croak("Invalid argument supplied to Math::LongDouble::_overload_gte function");
+    if(SvUOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) >= (ldbl)SvUV(b)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(SvIOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) >= (ldbl)SvIV(b)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(SvNOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) >= (ldbl)SvNV(b)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(SvPOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) >= strtold(SvPV_nolen(b), NULL)) return newSViv(1);
+        return newSViv(0);
+    }
+
+    if(sv_isobject(b)) {
+      const char *h = HvNAME(SvSTASH(SvRV(b)));
+      if(strEQ(h, "Math::LongDouble")) {
+        if(*(INT2PTR(long double *, SvIV(SvRV(a)))) >= *(INT2PTR(long double *, SvIV(SvRV(b))))) return newSViv(1);
+        return newSViv(0);
+      }
+      croak("Invalid object supplied to Math::LongDouble::_overload_gte function");
+    }
+    croak("Invalid argument supplied to Math::LongDouble::_overload_gte function");
 }
 
 SV * _overload_spaceship(pTHX_ SV * a, SV * b, SV * third) {
+
+    if(SvUOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) == (ldbl)SvUV(b)) return newSViv( 0);
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) <  (ldbl)SvUV(b)) return newSViv(-1);
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) >  (ldbl)SvUV(b)) return newSViv( 1);
+       return &PL_sv_undef; /* it's a nan */
+    }
+
+    if(SvIOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) == (ldbl)SvIV(b)) return newSViv( 0);
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) <  (ldbl)SvIV(b)) return newSViv(-1);
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) >  (ldbl)SvIV(b)) return newSViv( 1);
+       return &PL_sv_undef; /* it's a nan */
+    }
+
+    if(SvNOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) == (ldbl)SvNV(b)) return newSViv( 0);
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) <  (ldbl)SvNV(b)) return newSViv(-1);
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) >  (ldbl)SvNV(b)) return newSViv( 1);
+       return &PL_sv_undef; /* it's a nan */
+    }
+
+    if(SvPOK(b)) {
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) == strtold(SvPV_nolen(b), NULL)) return newSViv( 0);
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) <  strtold(SvPV_nolen(b), NULL)) return newSViv(-1);
+       if(*(INT2PTR(ldbl *, SvIV(SvRV(a)))) >  strtold(SvPV_nolen(b), NULL)) return newSViv( 1);
+       return &PL_sv_undef; /* it's a nan */
+    }
 
     if(sv_isobject(b)) {
        const char *h = HvNAME(SvSTASH(SvRV(b)));
@@ -798,14 +1145,48 @@ SV * _overload_atan2(pTHX_ SV * a, SV * b, SV * third) {
      Newx(ld, 1, long double);
      if(ld == NULL) croak("Failed to allocate memory in _overload_atan2 function");
 
-     *ld = atan2l(*(INT2PTR(long double *, SvIV(SvRV(a)))), *(INT2PTR(long double *, SvIV(SvRV(b)))));
-
-
      obj_ref = newSV(0);
      obj = newSVrv(obj_ref, "Math::LongDouble");
      sv_setiv(obj, INT2PTR(IV,ld));
      SvREADONLY_on(obj);
-     return obj_ref;
+
+     if(SvUOK(b)) {
+       if(third == &PL_sv_yes)
+            *ld = atan2l((ldbl)SvUV(b), *(INT2PTR(ldbl *, SvIV(SvRV(a)))));
+       else *ld = atan2l(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), (ldbl)SvUV(b));
+       return obj_ref;
+     }
+
+     if(SvIOK(b)) {
+       if(third == &PL_sv_yes)
+            *ld = atan2l((ldbl)SvIV(b), *(INT2PTR(ldbl *, SvIV(SvRV(a)))));
+       else *ld = atan2l(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), (ldbl)SvIV(b));
+       return obj_ref;
+     }
+
+     if(SvNOK(b)) {
+       if(third == &PL_sv_yes)
+            *ld = atan2l((ldbl)SvNV(b), *(INT2PTR(ldbl *, SvIV(SvRV(a)))));
+       else *ld = atan2l(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), (ldbl)SvNV(b));
+       return obj_ref;
+     }
+
+     if(SvPOK(b)) {
+       if(third == &PL_sv_yes)
+            *ld = atan2l(strtold(SvPV_nolen(b), NULL), *(INT2PTR(ldbl *, SvIV(SvRV(a)))));
+       else *ld = atan2l(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), strtold(SvPV_nolen(b), NULL));
+       return obj_ref;
+     }
+
+     if(sv_isobject(b)) {
+       const char *h = HvNAME(SvSTASH(SvRV(b)));
+       if(strEQ(h, "Math::LongDouble")) {
+         *ld = atan2l(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), *(INT2PTR(ldbl *, SvIV(SvRV(b)))));
+         return obj_ref;
+       }
+       croak("Invalid object supplied to Math::LongDouble::_overload_atan2 function");
+     }
+     croak("Invalid argument supplied to Math::LongDouble::_overload_atan2 function");
 }
 
 SV * _overload_inc(pTHX_ SV * a, SV * b, SV * third) {
@@ -836,9 +1217,36 @@ SV * _overload_pow(pTHX_ SV * a, SV * b, SV * third) {
 
      obj_ref = newSV(0);
      obj = newSVrv(obj_ref, "Math::LongDouble");
-
      sv_setiv(obj, INT2PTR(IV,ld));
      SvREADONLY_on(obj);
+
+     if(SvUOK(b)) {
+       if(third == &PL_sv_yes)
+            *ld = powl((ldbl)SvUV(b), *(INT2PTR(ldbl *, SvIV(SvRV(a)))));
+       else *ld = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), (ldbl)SvUV(b));
+       return obj_ref;
+     }
+
+     if(SvIOK(b)) {
+       if(third == &PL_sv_yes)
+            *ld = powl((ldbl)SvIV(b), *(INT2PTR(ldbl *, SvIV(SvRV(a)))));
+       else *ld = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), (ldbl)SvIV(b));
+       return obj_ref;
+     }
+
+     if(SvNOK(b)) {
+       if(third == &PL_sv_yes)
+            *ld = powl((ldbl)SvNV(b), *(INT2PTR(ldbl *, SvIV(SvRV(a)))));
+       else *ld = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), (ldbl)SvNV(b));
+       return obj_ref;
+     }
+
+     if(SvPOK(b)) {
+       if(third == &PL_sv_yes)
+            *ld = powl(strtold(SvPV_nolen(b), NULL), *(INT2PTR(ldbl *, SvIV(SvRV(a)))));
+       else *ld = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), strtold(SvPV_nolen(b), NULL));
+       return obj_ref;
+     }
 
     if(sv_isobject(b)) {
        const char *h = HvNAME(SvSTASH(SvRV(b)));
@@ -853,7 +1261,31 @@ SV * _overload_pow(pTHX_ SV * a, SV * b, SV * third) {
 
 SV * _overload_pow_eq(pTHX_ SV * a, SV * b, SV * third) {
 
-     SvREFCNT_inc(a);
+    SvREFCNT_inc(a);
+
+    if(SvUOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))),
+                                                    (ldbl)SvUV(b));
+        return a;
+    }
+
+    if(SvIOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))),
+                                                    (ldbl)SvIV(b));
+        return a;
+    }
+
+    if(SvNOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))),
+                                                    (ldbl)SvNV(b));
+        return a;
+    }
+
+    if(SvPOK(b)) {
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))),
+                                                    strtold(SvPV_nolen(b), NULL));
+        return a;
+    }
 
     if(sv_isobject(b)) {
        const char *h = HvNAME(SvSTASH(SvRV(b)));
@@ -881,7 +1313,7 @@ SV * _LDBL_DIG(pTHX) {
 #ifdef LDBL_DIG
      return newSViv(LDBL_DIG);
 #else
-     return newSViv(0);
+     croak("LDBL_DIG not implemented");
 #endif
 }
 
@@ -889,7 +1321,7 @@ SV * _DBL_DIG(pTHX) {
 #ifdef DBL_DIG
      return newSViv(DBL_DIG);
 #else
-     return newSViv(0);
+     croak("DBL_DIG not implemented");
 #endif
 }
 
@@ -897,7 +1329,7 @@ SV * _LDBL_MANT_DIG(pTHX) {
 #ifdef LDBL_MANT_DIG
      return newSViv(LDBL_MANT_DIG);
 #else
-     return newSViv(0);
+     croak("LDBL_MANT_DIG not implemented");
 #endif
 }
 
@@ -905,13 +1337,356 @@ SV * _DBL_MANT_DIG(pTHX) {
 #ifdef DBL_MANT_DIG
      return newSViv(DBL_MANT_DIG);
 #else
-     return newSViv(0);
+     croak("DBL_MANT_DIG not implemented");
 #endif
 }
 
 SV * _get_xs_version(pTHX) {
      return newSVpv(XS_VERSION, 0);
 }
+
+void _ld_bytes(pTHX_ SV * sv) {
+  dXSARGS;
+  long double ld = *(INT2PTR(ldbl *, SvIV(SvRV(sv))));
+  int i, n = sizeof(long double);
+  char * buff;
+  void * p = &ld;
+
+  Newx(buff, 4, char);
+  if(buff == NULL) croak("Failed to allocate memory in _ld_bytes function");
+
+  sp = mark;
+
+#ifdef WE_HAVE_BENDIAN /* Big Endian architecture */
+  for (i = 0; i < n; i++) {
+#else
+  for (i = n - 1; i >= 0; i--) {
+#endif
+
+    sprintf(buff, "%02X", ((unsigned char*)p)[i]);
+    XPUSHs(sv_2mortal(newSVpv(buff, 0)));
+  }
+  PUTBACK;
+  Safefree(buff);
+  XSRETURN(n);
+}
+
+void acos_LD(ldbl * rop, ldbl * op) {
+  *rop = acosl(*op);
+}
+
+void acosh_LD(ldbl * rop, ldbl * op) {
+  *rop = acoshl(*op);
+}
+
+void asin_LD(ldbl * rop, ldbl * op) {
+  *rop = asinl(*op);
+}
+
+void asinh_LD(ldbl * rop, ldbl * op) {
+  *rop = asinhl(*op);
+}
+
+void atan_LD(ldbl * rop, ldbl * op) {
+  *rop = atanl(*op);
+}
+
+void atanh_LD(ldbl * rop, ldbl * op) {
+  *rop = atanhl(*op);
+}
+
+void atan2_LD(ldbl * rop, ldbl * op1, ldbl * op2) {
+  *rop = atan2l(*op1, *op2);
+}
+
+void cbrt_LD(ldbl * rop, ldbl * op) {
+  *rop = cbrtl(*op);
+}
+
+void ceil_LD(ldbl * rop, ldbl * op) {
+  *rop = ceill(*op);
+}
+
+void copysign_LD(ldbl * rop, ldbl * op1, ldbl * op2) {
+  *rop = copysignl(*op1, *op2);
+}
+
+void cosh_LD(ldbl * rop, ldbl * op) {
+  *rop = coshl(*op);
+}
+
+void cos_LD(ldbl * rop, ldbl * op) {
+  *rop = cosl(*op);
+}
+
+void erf_LD(ldbl * rop, ldbl * op) {
+  *rop = erfl(*op);
+}
+
+void erfc_LD(ldbl * rop, ldbl * op) {
+  *rop = erfcl(*op);
+}
+
+void exp_LD(ldbl * rop, ldbl * op) {
+  *rop = expl(*op);
+}
+
+void expm1_LD(ldbl * rop, ldbl * op) {
+  *rop = expm1l(*op);
+}
+
+void fabs_LD(ldbl * rop, ldbl * op) {
+  *rop = fabsl(*op);
+}
+
+void fdim_LD(ldbl * rop, ldbl * op1, ldbl * op2) {
+  *rop = fdiml(*op1, *op2);
+}
+
+int finite_LD(ldbl * op) {
+  return finite(*op);
+}
+
+void floor_LD(ldbl * rop, ldbl * op) {
+  *rop = floorl(*op);
+}
+
+void fma_LD(ldbl * rop, ldbl * op1, ldbl * op2, ldbl * op3) {
+  *rop = fmal(*op1, *op2, *op3);
+}
+
+void fmax_LD(ldbl * rop, ldbl * op1, ldbl * op2) {
+  *rop = fmaxl(*op1, *op2);
+}
+
+void fmin_LD(ldbl * rop, ldbl * op1, ldbl * op2) {
+  *rop = fminl(*op1, *op2);
+}
+
+void fmod_LD(ldbl * rop, ldbl * op1, ldbl * op2) {
+  *rop = fmodl(*op1, *op2);
+}
+
+void hypot_LD(ldbl * rop, ldbl * op1, ldbl * op2) {
+  *rop = hypotl(*op1, *op2);
+}
+
+void frexp_LD(pTHX_ ldbl * frac, SV * exp, ldbl * op) {
+  int e;
+  *frac = frexpl(*op, &e);
+  sv_setsv(exp, newSViv(e));
+}
+
+void ldexp_LD(ldbl * rop, ldbl * op, int pow) {
+  *rop = ldexpl(*op, pow);
+}
+
+int isinf_LD(ldbl * op) {
+  return isinf(*op);
+}
+
+int ilogb_LD(ldbl * op) {
+  return ilogbl(*op);
+}
+
+int isnan_LD(ldbl * op) {
+  return isnanl(*op);
+}
+
+void lgamma_LD(ldbl * rop, ldbl * op) {
+  *rop = lgammal(*op);
+}
+
+SV * llrint_LD(pTHX_ ldbl * op) {
+#ifdef LONGLONG2IV_IS_OK
+  return newSViv((IV)llrintl(*op));
+#else
+  warn("llrint_LD not implemented: IV size (%d) is smaller than longlong size (%d)\n", sizeof(IV), sizeof(long long int));
+  croak("Use lrint_LD instead");
+#endif
+}
+
+SV * llround_LD(pTHX_ ldbl * op) {
+#ifdef LONGLONG2IV_IS_OK
+  return newSViv((IV)llroundl(*op));
+#else
+  warn("llround_LD not implemented: IV size (%d) is smaller than longlong size (%d)\n", sizeof(IV), sizeof(long long int));
+  croak("Use lround_LD instead");
+#endif
+}
+
+SV * lrint_LD(pTHX_ ldbl * op) {
+#ifdef LONG2IV_IS_OK
+  return newSViv((IV)lrintl(*op));
+#else
+  croak("lrint_LD not implemented: IV size (%d) is smaller than long size (%d)", sizeof(IV), sizeof(long));
+#endif
+}
+
+SV * lround_LD(pTHX_ ldbl * op) {
+#ifdef LONG2IV_IS_OK
+  return newSViv((IV)lroundl(*op));
+#else
+  croak("lround_LD not implemented: IV size (%d) is smaller than long size (%d)", sizeof(IV), sizeof(long));
+#endif
+}
+
+void log_LD(ldbl * rop, ldbl * op) {
+  *rop = logl(*op);
+}
+
+void log10_LD(ldbl * rop, ldbl * op) {
+  *rop = log10l(*op);
+}
+
+void log2_LD(ldbl * rop, ldbl * op) {
+  *rop = log2l(*op);
+}
+
+void log1p_LD(ldbl * rop, ldbl * op) {
+  *rop = log1pl(*op);
+}
+
+void modf_LD(ldbl * integer, ldbl * frac, ldbl * op) {
+  ldbl ret;
+  *frac = modfl(*op, &ret);
+  *integer = ret;
+}
+
+void nan_LD(pTHX_ ldbl * rop, SV * op) {
+  *rop = nanl(SvPV_nolen(op));
+}
+
+void nearbyint_LD(ldbl * rop, ldbl * op) {
+  *rop = nearbyintl(*op);
+}
+
+void nextafter_LD(ldbl * rop, ldbl * op1, ldbl * op2) {
+  *rop = nextafterl(*op1, *op2);
+}
+
+void pow_LD(ldbl * rop, ldbl * op1, ldbl * op2) {
+  *rop = powl(*op1, *op2);
+}
+
+void remainder_LD(ldbl * rop, ldbl * op1, ldbl * op2) {
+  *rop = remainderl(*op1, *op2);
+}
+
+/*
+remquo_LD seems buggy with some compilers, and is therefore not tested.
+Just wrap it, document that it's untested, and don't worry about it.
+*/
+
+void remquo_LD(pTHX_ ldbl * rop1, SV * rop2, ldbl * op1, ldbl * op2) {
+  int ret;
+  *rop1 = remquol(*op1, *op2, &ret);
+  sv_setsv(rop2, newSViv(ret));
+}
+
+void rint_LD(ldbl * rop, ldbl * op) {
+  *rop = rintl(*op);
+}
+
+void round_LD(ldbl * rop, ldbl * op) {
+  *rop = roundl(*op);
+}
+
+void scalbln_LD(ldbl * rop, ldbl * op1, long op2) {
+  *rop = scalblnl(*op1, op2);
+}
+
+void scalbn_LD(ldbl * rop, ldbl * op1, int op2) {
+  *rop = scalbnl(*op1, op2);
+}
+
+int signbit_LD(ldbl * op) {
+  return signbitl(*op);
+}
+
+void sincos_LD(ldbl * sin, ldbl * cos, ldbl * op) {
+#ifdef NO_SINCOSL
+  croak("No sincosl function for this build of Math::LongDouble (%u)", NO_SINCOSL);
+#else
+  ldbl sine, cosine;
+  sincosl(*op, &sine, &cosine);
+  *sin = sine;
+  *cos = cosine;
+#endif
+}
+
+void sinh_LD(ldbl * rop, ldbl * op) {
+  *rop = sinhl(*op);
+}
+
+void sin_LD(ldbl * rop, ldbl * op) {
+  *rop = sinl(*op);
+}
+
+void sqrt_LD(ldbl * rop, ldbl * op) {
+  *rop = sqrtl(*op);
+}
+
+void tan_LD(ldbl * rop, ldbl * op) {
+  *rop = tanl(*op);
+}
+
+void tanh_LD(ldbl * rop, ldbl * op) {
+  *rop = tanhl(*op);
+}
+
+void tgamma_LD(ldbl * rop, ldbl * op) {
+  *rop = tgammal(*op);
+}
+
+void trunc_LD(ldbl * rop, ldbl * op) {
+  *rop = truncl(*op);
+}
+
+SV * _sincosl_status(pTHX) {
+#ifdef NO_SINCOSL
+#if NO_SINCOSL == 1
+  return newSVpv("built without sincosl function - old compiler (1)", 0);
+#else
+  return newSVpv("built without sincosl function - mingw.org compiler (2)", 0);
+#endif
+#else
+  return newSVpv("built with sincosl function", 0);
+#endif
+}
+
+int _longlong2iv_is_ok(void) {
+
+/* Is longlong to IV conversion guaranteed to not lose precision ? */
+#ifdef LONGLONG2IV_IS_OK
+  return 1;
+#else
+  return 0;
+#endif
+
+}
+
+/* Is long to IV conversion guaranteed to not lose precision ? */
+int _long2iv_is_ok(void) {
+
+#ifdef LONG2IV_IS_OK
+  return 1;
+#else
+  return 0;
+#endif
+
+}
+
+/* FLT_RADIX is probably 2, but we can use this if we need to be sure. */
+int _flt_radix(void) {
+#ifdef FLT_RADIX
+  return (int)FLT_RADIX;
+#else
+  return 0;
+#endif
+}
+
+
 MODULE = Math::LongDouble  PACKAGE = Math::LongDouble
 
 PROTOTYPES: DISABLE
@@ -941,11 +1716,11 @@ CODE:
 OUTPUT:  RETVAL
 
 SV *
-NaNLD (sign)
-	int	sign
+NaNLD ()
 CODE:
-  RETVAL = NaNLD (aTHX_ sign);
+  RETVAL = NaNLD (aTHX);
 OUTPUT:  RETVAL
+
 
 SV *
 ZeroLD (sign)
@@ -1413,5 +2188,958 @@ _get_xs_version ()
 CODE:
   RETVAL = _get_xs_version (aTHX);
 OUTPUT:  RETVAL
+
+
+void
+_ld_bytes (sv)
+	SV *	sv
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        _ld_bytes(aTHX_ sv);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+acos_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        acos_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+acosh_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        acosh_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+asin_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        asin_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+asinh_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        asinh_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+atan_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        atan_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+atanh_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        atanh_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+atan2_LD (rop, op1, op2)
+	ldbl *	rop
+	ldbl *	op1
+	ldbl *	op2
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        atan2_LD(rop, op1, op2);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+cbrt_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        cbrt_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+ceil_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        ceil_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+copysign_LD (rop, op1, op2)
+	ldbl *	rop
+	ldbl *	op1
+	ldbl *	op2
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        copysign_LD(rop, op1, op2);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+cosh_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        cosh_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+cos_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        cos_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+erf_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        erf_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+erfc_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        erfc_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+exp_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        exp_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+expm1_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        expm1_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+fabs_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        fabs_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+fdim_LD (rop, op1, op2)
+	ldbl *	rop
+	ldbl *	op1
+	ldbl *	op2
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        fdim_LD(rop, op1, op2);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+int
+finite_LD (op)
+	ldbl *	op
+
+void
+floor_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        floor_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+fma_LD (rop, op1, op2, op3)
+	ldbl *	rop
+	ldbl *	op1
+	ldbl *	op2
+	ldbl *	op3
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        fma_LD(rop, op1, op2, op3);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+fmax_LD (rop, op1, op2)
+	ldbl *	rop
+	ldbl *	op1
+	ldbl *	op2
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        fmax_LD(rop, op1, op2);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+fmin_LD (rop, op1, op2)
+	ldbl *	rop
+	ldbl *	op1
+	ldbl *	op2
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        fmin_LD(rop, op1, op2);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+fmod_LD (rop, op1, op2)
+	ldbl *	rop
+	ldbl *	op1
+	ldbl *	op2
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        fmod_LD(rop, op1, op2);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+hypot_LD (rop, op1, op2)
+	ldbl *	rop
+	ldbl *	op1
+	ldbl *	op2
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        hypot_LD(rop, op1, op2);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+frexp_LD (frac, exp, op)
+	ldbl *	frac
+	SV *	exp
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        frexp_LD(aTHX_ frac, exp, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+ldexp_LD (rop, op, pow)
+	ldbl *	rop
+	ldbl *	op
+	int	pow
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        ldexp_LD(rop, op, pow);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+int
+isinf_LD (op)
+	ldbl *	op
+
+int
+ilogb_LD (op)
+	ldbl *	op
+
+int
+isnan_LD (op)
+	ldbl *	op
+
+void
+lgamma_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        lgamma_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+SV *
+llrint_LD (op)
+	ldbl *	op
+CODE:
+  RETVAL = llrint_LD (aTHX_ op);
+OUTPUT:  RETVAL
+
+SV *
+llround_LD (op)
+	ldbl *	op
+CODE:
+  RETVAL = llround_LD (aTHX_ op);
+OUTPUT:  RETVAL
+
+SV *
+lrint_LD (op)
+	ldbl *	op
+CODE:
+  RETVAL = lrint_LD (aTHX_ op);
+OUTPUT:  RETVAL
+
+SV *
+lround_LD (op)
+	ldbl *	op
+CODE:
+  RETVAL = lround_LD (aTHX_ op);
+OUTPUT:  RETVAL
+
+void
+log_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        log_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+log10_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        log10_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+log2_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        log2_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+log1p_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        log1p_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+modf_LD (integer, frac, op)
+	ldbl *	integer
+	ldbl *	frac
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        modf_LD(integer, frac, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+nan_LD (rop, op)
+	ldbl *	rop
+	SV *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        nan_LD(aTHX_ rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+nearbyint_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        nearbyint_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+nextafter_LD (rop, op1, op2)
+	ldbl *	rop
+	ldbl *	op1
+	ldbl *	op2
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        nextafter_LD(rop, op1, op2);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+pow_LD (rop, op1, op2)
+	ldbl *	rop
+	ldbl *	op1
+	ldbl *	op2
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        pow_LD(rop, op1, op2);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+remainder_LD (rop, op1, op2)
+	ldbl *	rop
+	ldbl *	op1
+	ldbl *	op2
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        remainder_LD(rop, op1, op2);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+remquo_LD (rop1, rop2, op1, op2)
+	ldbl *	rop1
+	SV *	rop2
+	ldbl *	op1
+	ldbl *	op2
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        remquo_LD(aTHX_ rop1, rop2, op1, op2);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+rint_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        rint_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+round_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        round_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+scalbln_LD (rop, op1, op2)
+	ldbl *	rop
+	ldbl *	op1
+	long	op2
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        scalbln_LD(rop, op1, op2);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+scalbn_LD (rop, op1, op2)
+	ldbl *	rop
+	ldbl *	op1
+	int	op2
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        scalbn_LD(rop, op1, op2);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+int
+signbit_LD (op)
+	ldbl *	op
+
+void
+sincos_LD (sin, cos, op)
+	ldbl *	sin
+	ldbl *	cos
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        sincos_LD(sin, cos, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+sinh_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        sinh_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+sin_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        sin_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+sqrt_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        sqrt_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+tan_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        tan_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+tanh_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        tanh_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+tgamma_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        tgamma_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+void
+trunc_LD (rop, op)
+	ldbl *	rop
+	ldbl *	op
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        trunc_LD(rop, op);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
+
+SV *
+_sincosl_status ()
+CODE:
+  RETVAL = _sincosl_status (aTHX);
+OUTPUT:  RETVAL
+
+
+int
+_longlong2iv_is_ok ()
+
+
+int
+_long2iv_is_ok ()
+
+
+int
+_flt_radix ()
 
 

@@ -1,5 +1,6 @@
 use ExtUtils::MakeMaker;
 
+
 eval {require ActivePerl::DocTools;};
 unless($@) {
   warn "\n  WARNING: The sqrt and ** (pow) overloading is buggy\n",
@@ -7,6 +8,14 @@ unless($@) {
 }
 
 my $defines = $] < 5.008 ? "-DOLDPERL" : "-DNEWPERL";
+
+$defines .= $Config::Config{byteorder} =~ /^1234/ ? " -DWE_HAVE_LENDIAN" : " -DWE_HAVE_BENDIAN";
+
+$defines .= " -DLONGLONG2IV_IS_OK"
+  if $Config::Config{ivsize} >= $Config::Config{longlongsize};
+
+$defines .= " -DLONG2IV_IS_OK"
+  if $Config::Config{ivsize} >= $Config::Config{longsize};
 
 my %options = %{
 {

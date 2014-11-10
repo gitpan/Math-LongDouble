@@ -14,11 +14,14 @@ t/inc_dec.t
 t/int.t
 t/log_exp.t
 t/new.t
+t/overload.t
 t/pod.t
 t/pow.t
 t/prec.t
+t/special.t
 t/stringification.t
 t/trig.t
+typemap
 
 
 META.yml                                 Module YAML meta-data (added by MakeMaker)

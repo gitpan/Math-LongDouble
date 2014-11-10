@@ -5,7 +5,7 @@ use Config;
 
 print "1..8\n";
 
-my $nan = NaNLD(1);
+my $nan = NaNLD();
 my $zero = ZeroLD(-1);
 my $unity = UnityLD(1);
 my $inf = InfLD(-1);

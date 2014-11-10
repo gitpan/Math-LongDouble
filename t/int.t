@@ -4,8 +4,8 @@ use Math::LongDouble qw(:all);
 
 print "1..6\n";
 
-my $nan = NaNLD(1);
-my $nnan = NaNLD(-1);
+my $nan = NaNLD();
+my $nnan = NaNLD();
 my $zero = ZeroLD(1);
 my $nzero = ZeroLD(-1);
 my $unity = UnityLD(1);

@@ -20,7 +20,7 @@ else {print "not ok 3\n"}
 if(!$inf) {print "not ok 4\n"}
 else {print "ok 4\n"}
 
-my $nan = NaNLD(-1);
+my $nan = NaNLD();
 
 if(!$nan) {print "ok 5\n"}
 else {print "not ok 5\n"}

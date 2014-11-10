@@ -42,9 +42,9 @@ use overload
   '--'    => \&_overload_dec,
 ;
 
-use subs qw(LD_DBL_DIG LD_LDBL_DIG);
+use subs qw(LD_DBL_DIG LD_LDBL_DIG LD_DBL_MANT_DIG LD_LDBL_MANT_DIG);
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 #$VERSION = eval $VERSION;
 
 DynaLoader::bootstrap Math::LongDouble $Math::LongDouble::VERSION;
@@ -55,7 +55,17 @@ DynaLoader::bootstrap Math::LongDouble $Math::LongDouble::VERSION;
     LDtoNV LDtoLD cmp_NV
     ld_set_prec ld_get_prec LDtoSTRP
     LD_DBL_DIG LD_LDBL_DIG LD_DBL_MANT_DIG LD_LDBL_MANT_DIG
-    ld_max_orig_len ld_min_inter_prec ld_min_inter_base ld_max_orig_base
+
+    ld_max_orig_len ld_min_inter_prec ld_min_inter_base ld_max_orig_base ld_bytes
+
+    llrint_LD llround_LD lrint_LD lround_LD frexp_LD nan_LD remquo_LD
+    acos_LD acosh_LD asin_LD asinh_LD atan_LD atanh_LD atan2_LD cbrt_LD ceil_LD
+    copysign_LD cosh_LD cos_LD erf_LD erfc_LD exp_LD expm1_LD finite_LD fabs_LD
+    fdim_LD floor_LD fma_LD fmax_LD fmin_LD fmod_LD hypot_LD isinf_LD
+    ilogb_LD isnan_LD ldexp_LD lgamma_LD  log_LD log10_LD
+    log2_LD log1p_LD modf_LD nearbyint_LD nextafter_LD
+    pow_LD remainder_LD  rint_LD round_LD scalbln_LD scalbn_LD signbit_LD
+    sincos_LD sinh_LD sin_LD sqrt_LD tan_LD tanh_LD tgamma_LD trunc_LD
     );
 
 %Math::LongDouble::EXPORT_TAGS = (all => [qw(
@@ -63,7 +73,17 @@ DynaLoader::bootstrap Math::LongDouble $Math::LongDouble::VERSION;
     LDtoNV LDtoLD cmp_NV
     ld_set_prec ld_get_prec LDtoSTRP
     LD_DBL_DIG LD_LDBL_DIG LD_DBL_MANT_DIG LD_LDBL_MANT_DIG
-    ld_max_orig_len ld_min_inter_prec ld_min_inter_base ld_max_orig_base
+
+    ld_max_orig_len ld_min_inter_prec ld_min_inter_base ld_max_orig_base ld_bytes
+
+    llrint_LD llround_LD lrint_LD lround_LD frexp_LD nan_LD remquo_LD
+    acos_LD acosh_LD asin_LD asinh_LD atan_LD atanh_LD atan2_LD cbrt_LD ceil_LD
+    copysign_LD cosh_LD cos_LD erf_LD erfc_LD exp_LD expm1_LD finite_LD fabs_LD
+    fdim_LD floor_LD fma_LD fmax_LD fmin_LD fmod_LD hypot_LD isinf_LD
+    ilogb_LD isnan_LD ldexp_LD lgamma_LD  log_LD log10_LD
+    log2_LD log1p_LD modf_LD nearbyint_LD nextafter_LD
+    pow_LD remainder_LD  rint_LD round_LD scalbln_LD scalbn_LD signbit_LD
+    sincos_LD sinh_LD sin_LD sqrt_LD tan_LD tanh_LD tgamma_LD trunc_LD
     )]);
 
 sub dl_load_flags {0} # Prevent DynaLoader from complaining and croaking
@@ -109,7 +129,7 @@ sub new {
     # not an object - which we'll do by using the ref() function:
     if(!ref($_[0]) && $_[0] eq "Math::LongDouble") {
       shift;
-      if(!@_) {return NaNLD(1)}
+      if(!@_) {return NaNLD()}
       }
 
     if(@_ > 1) {die "Too many arguments supplied to new() - expected no more than 1"}
@@ -117,38 +137,20 @@ sub new {
     my $arg = shift;
     my $type = _itsa($arg);
 
-    if($type == 3) { # NV
-      if($arg == 0) {return STRtoLD($arg)}
-      if($arg != $arg) { #NaN
-        if($arg =~ /^\-/) {return NaNLD(-1)}
-        return NaNLD(1);
-      }
-      if(($arg / $arg) != ($arg / $arg)) { # Inf
-        if($arg < 0) {return InfLD(-1)}
-        return InfLD(1);
-      }
-      return STRtoLD($arg);
-    }
+    return UVtoLD ($arg) if $type == 1;    # UV
+    return IVtoLD ($arg) if $type == 2;    # IV
+    return NVtoLD ($arg) if $type == 3;    # NV
+    return STRtoLD($arg) if $type == 4;    # PV
+    return LDtoLD ($arg) if $type == 96;   # Math::LongDouble object
 
-    if(
-       $type == 1 || #UV
-       $type == 2 || #IV
-       $type == 4    #PV
-                   ) {
-      return STRtoLD($arg);
-    }
-
-    if($type == 96) { # Math::LongDouble object
-      return LDtoLD($arg);
-    }
-
-    die "Bad argument given to new";
+    die "Bad argument given to new()";
 }
 
 sub LD_DBL_DIG       {return  _DBL_DIG()}
 sub LD_LDBL_DIG      {return _LDBL_DIG()}
 sub LD_DBL_MANT_DIG  {return  _DBL_MANT_DIG()}
 sub LD_LDBL_MANT_DIG {return _LDBL_MANT_DIG()}
+
 
 sub ld_min_inter_prec {
     die "Wrong number of args to minimum_intermediate_prec()" if @_ != 3;
@@ -182,6 +184,11 @@ sub ld_max_orig_base {
     return floor(exp(1 / ($orig_length / log($to_base) / ($to_prec -1))));
 }
 
+sub ld_bytes {
+  my @ret = _ld_bytes($_[0]);
+  return join '', @ret;
+}
+
 1;
 
 __END__
@@ -189,36 +196,40 @@ __END__
 =head1 NAME
 
 Math::LongDouble - perl interface to C's long double operations
- (for perls that don't already have that capability)
-
-
-=head1 BUGS
-
-  This module has bugs on perls built with a Microsoft compiler (eg
-  ActivePerl) - even if the binaries installed onto the MSVC-built
-  perl were built using MinGW on a MinGW-built perl such as Strawberry
-  Perl (where no such problem exists).
-  By some means that is still unclear, the 'long double' precision
-  can apparently be reduced to 'double' precision whenever a
-  Math::LongDouble object is raised to a power (or a square root taken)
-  on MSVC-built perls.
-  This bug manifests itself in causing some test failures in t/cmp.t
-  and t/pow.t.
 
 
 =head1 DESCRIPTION
 
-  If your perl's NV is a 'long double', then there's no point in using this
-  module. But if your perl's NV is a 'double', then this module provides
-  you with a way of performing arithmetic operations with long double
-  precision.
-
    use Math::LongDouble qw(:all);
 
-   my $arg = 32.1;
-   my $ld1 = Math::LongDouble->new($arg);# Stringify $arg, then assign
-                                          # using C's strtold()
-   my $ld2 = NVtoLD($arg); # Assign the NV 32.1 to $ld2.
+   $arg = ~0; # largest UV
+   $d1 = Math::LongDouble->new($arg); # Assign the UV ~0 to $d2.
+   $d2 = UVtoLD($arg);                # Assign the UV ~0 to $d2.
+
+   $arg = -21;
+   $d1 = Math::LongDouble->new($arg); # Assign the IV -21 to $d2.
+   $d2 = IVtoLD($arg);                # Assign the IV -21 to $d2.
+
+   $arg = 32.1;
+   $d1 = Math::LongDouble->new($arg); # Assign the NV 32.1 to $d2.
+   $d2 = NVtoLD($arg);                # Assign the NV 32.1 to $d2.
+
+   $arg = "32.1";
+   $d1 = Math::LongDouble->new($arg); # Assign strtold("32.1") to $d2.
+   $d2 = STRtoLD($arg);               # Assign strtold("32.1") to $d2.
+
+   $d3 = Math::LongDouble->new($d1); # Assign the value of $d1 to $d3.
+   $d4 = LDtoLD($d1);                # Assign the value of $d1 to $d4.
+   $d5 = $d1;                        # Assign the value of $d1 to $d5.
+
+   This behaviour has changed from 0.06 and earlier.
+
+   NOTE:
+    Math::LongDouble->new(32.1) != Math::LongDouble->new('32.1')
+    unless $Config{nvtype} reports long double. The same holds
+    for many (but not all) numeric values. In general, it's not
+    always true (and is often untrue) that
+    Math::LongDouble->new($n) == Math::LongDouble->new("$n")
 
 
 =head1 OVERLOADING
@@ -233,12 +244,36 @@ Math::LongDouble - perl interface to C's long double operations
     sqrt log exp
     sin cos atan2
 
-    Arguments to the overloaded operations must be Math::LongDouble
-    objects.
+    In those situations where the overload subroutine operates on 2
+    perl variables, then obviously one of those perl variables is
+    a Math::LongDouble object. To determine the value of the other
+    variable the subroutine works through the following steps (in
+    order), using the first value it finds, or croaking if it gets
+    to step 6:
 
-     $ld = $ld + 3.1; # currently an error. Do instead:
+    1. If the variable is a UV (unsigned integer value) then that
+       value is used. The variable is considered to be a UV if
+       (perl 5.8) the UOK flag is set or if (perl 5.6) SvIsUV()
+       returns true.
 
-     $ld = $ld + Math::LongDouble->new('3.1');
+    2. If the variable is an IV (signed integer value) then that
+       value is used. The variable is considered to be an IV if the
+       IOK flag is set.
+
+    3. If the variable is an NV (floating point value) then that
+       value is used. The variable is considered to be an NV if the
+       NOK flag is set.
+
+    4. If the variable is a string (ie the POK flag is set) then the
+       value of that string is used.
+
+    5. If the variable is a Math::LongDouble object then the value
+       encapsulated in that object is used.
+
+    6. If none of the above is true, then the second variable is
+       deemed to be of an invalid type. The subroutine croaks with
+       an appropriate error message.
+
 
 =head1 ASSIGNMENT FUNCTIONS
 
@@ -247,7 +282,7 @@ Math::LongDouble - perl interface to C's long double operations
     $ld = Math::LongDouble->new($arg);
      Returns a Math::LongDouble object to which the numeric value of $arg
      has been assigned.
-     If no arg is supplied then $ld will be NaN.
+     If $arg is not provided then the value of $ld will be NaN.
 
     $ld = UVtoLD($arg);
      Returns a Math::LongDouble object to which the numeric (unsigned
@@ -279,12 +314,8 @@ Math::LongDouble - perl interface to C's long double operations
     negative infinity; else returns a Math::LongDouble object set
     to positive infinity.
 
-   $ld = NaNLD($sign);
-    If $sign < 0, returns a Math::longDouble object set to
-    negative NaN; else returns a Math::LongDouble object set to
-    positive NaN. It may be problematical as to whether a NaN
-    with the correct sign has been returned ... but, either way,
-    it should return a NaN.
+   $ld = NaNLD();
+    If $sign < 0, returns a Math::longDouble object set to NaN.
 
    $ld = ZeroLD($sign);
     If $sign < 0, returns a Math::LongDouble object set to
@@ -298,7 +329,9 @@ Math::LongDouble - perl interface to C's long double operations
 
    ld_set_prec($precision);
     Sets the precision of stringified values to $precision decimal
-    digits.
+    digits. Default precision is as specified by float.h's LDBL_DIG
+    (or 18 if LDBL_DIG is not defined).
+
 
    $precision = ld_get_prec();
     Returns the precision (in decimal digits) that will be used
@@ -351,6 +384,227 @@ Math::LongDouble - perl interface to C's long double operations
     If the Math::LongDouble object $ld < $nv returns -1.
     If it is > $nv, returns 1.
     Otherwise returns 0.
+
+   $hex = ld_bytes($ld);
+    Returns the  hex representation of the value held by $f as a
+    string of X hex characters, where X == the size of the long
+    double (in bytes) multiplied by 2.
+
+
+=head1 MATH LIBRARY FUNCTIONS
+
+   With the following functions, "$rop" and "$op" are Math::LongDouble
+   objects, and "$iv" is just a normal perl scalar that either
+   holds a signed integer value, or to which a signed integer value
+   will be returned.
+   These are just interfaces to the standard math library functions.
+   I'm assuming you already have access to their documentation.
+   These functions do not check their argument types - if you get
+   a segfault, check that you've supplied the correct argument type(s).
+
+   acos_LD($rop, $op);
+    acos($op) is assigned to $rop.
+
+   acosh_LD($rop, $op);
+    acosh($op) is assigned to $rop.
+
+   asin_LD($rop, $op);
+    asin($op) is assigned to $rop.
+
+   asinh_LD($rop, $op);
+    asinh($op) is assigned to $rop.
+
+   atan_LD($rop, $op);
+    atan($op) is assigned to $rop.
+
+   atanh_LD($rop, $op);
+    atanh($op) is assigned to $rop.
+
+   atan2_LD($rop, $op1, $op2);
+    atan2($op1, $op2) is assigned to $rop.
+
+   cbrt_LD($rop, $op);
+    cbrt($op) is assigned to $rop.
+
+   ceil_LD($rop, $op);
+    ceil($op) is assigned to $rop.
+
+   copysign_LD($rop, $op1, $op2);
+    copysign($op1, $op2) is assigned to $rop.
+
+   cosh_LD($rop, $op);
+    cosh($op) is assigned to $rop.
+
+   cos_LD($rop, $op);
+    cos($op) is assigned to $rop.
+
+   erf_LD($rop, $op);
+    erf($op) is assigned to $rop.
+
+   erfc_LD($rop, $op);
+    erfc($op) is assigned to $rop.
+
+   exp_LD($rop, $op);
+    exp($op) is assigned to $rop.
+
+   expm1_LD($rop, $op);
+    expm1($op) is assigned to $rop.
+
+   fabs_LD($rop, $op);
+    fabs($op) is assigned to $rop.
+
+   fdim_LD($rop, $op1, $op2);
+    fdim($op1, $op2) is assigned to $rop.
+
+   $iv = finite_LD($op);
+    finite($op) is assigned to $iv.
+
+   floor_LD($rop, $op);
+    floor($op) is assigned to $rop.
+
+   fma_LD($rop, $op1, $op2, $op3);
+    fma($op1, $op2, $op3) is assigned to $rop.
+    On mingw-w64 compilers, fmaq() crashes, so for those compilers
+    we assign ($op1 * $op2)+$op3 to $rop.
+
+   fmax_LD($rop, $op1, $op2);
+    fmax($op1, $op2) is assigned to $rop.
+
+   fmin_LD($rop, $op1, $op2);
+    fmin($op1, $op2) is assigned to $rop.
+
+   fmod_LD($rop, $op1, $op2);
+    fmod($op1, $op2) is assigned to $rop.
+
+   frexp_LD($rop, $iv, $op);
+    frexp($op) is assigned to ($rop, $iv)
+
+   hypot_LD($rop, $op1, $op2);
+    hypot($op1, $op2) is assigned to $rop.
+
+   $iv = isinf_LD($op);
+    isinf($op) is assigned to $iv.
+
+   $iv = ilogb_LD($op);
+    ilogb($op) is assigned to $iv.
+
+   $iv = isnan_LD($op);
+    isnan($op) is assigned to $iv.
+
+   ldexp_LD($rop, $op, $iv);
+    ldexp($op, $iv) is assigned to $rop.
+    $iv should not contain a value that won't fit into a signed int
+
+   lgamma_LD($rop, $op);
+    lgamma($op) is assigned to $rop.
+
+   $iv = llrint_LD($op);
+    llrint($op) is assigned to $iv.
+    This requires that perl's IV is large enough to hold a longlong
+    int. Otherwise attempts to use this function will result in a fatal
+    error, accompanied by a message stating that the function is
+    unimplemented.
+
+   $iv = llround_LD($op);
+    llround($op) is assigned to $rop.
+    This requires that perl's IV is large enough to hold a longlong
+    int. Otherwise attempts to use this function will result in a fatal
+    error, accompanied by a message stating that the function is
+    unimplemented.
+
+   log_LD($rop, $op);
+    log($op) is assigned to $rop. # base e
+
+   log10_LD($rop, $op);
+    log($op) is assigned to $rop. # base 10
+
+   log2_LD($rop, $op);
+    log($op) is assigned to $rop. # base 2
+
+   log1p_LD($rop, $op);
+    log1p($op) is assigned to $rop. # base e
+
+   $iv = lrint_LD($op);
+    lrint($op) is assigned to $iv.
+    This requires that perl's IV is large enough to hold a long int.
+    Otherwise attempts to use this function will result in a fatal
+    error, accompanied by a message stating that the function is
+    unimplemented.
+
+   $iv = lround_LD($op);
+    lround($op) is assigned to $iv
+    This requires that perl's IV is large enough to hold a long int.
+    Otherwise attempts to use this function will result in a fatal
+    error, accompanied by a message stating that the function is
+    unimplemented.
+
+   modf_LD($rop1, $rop2, $op);
+    modf($op) is assigned to ($rop1, $rop2).
+
+   nan_LD($rop, $op);
+    nan($op) is assigned to $rop.
+
+   nearbyint_LD($rop, $op);
+    nearbyint($op) is assigned to $rop.
+
+   nextafter_LD($rop, $op1, $op2);
+    nextafter($op1, $op2) is assigned to $rop.
+
+   pow_LD($rop, $op1, $op2);
+    pow($op1, $op2) is assigned to $rop.
+
+   remainder_LD($rop, $op1, $op2);
+    remainder($op1, $op2) is assigned to $rop.
+
+   remquo_LD($rop1, $rop2, $op1, $op2);
+    remquo($op1, $op2) is assigned to ($rop1, $rop2).
+    I find this function can return unexpected results with some
+    compilers. Therefore, this function is not tested in the test suite.
+    Use it at your own risk.
+
+
+   $iv = rint_LD($op);
+    rint($op) is assigned to $rop.
+
+   $iv = round_LD($op);
+    round($op) is assigned to $iv.
+
+   scalbln_LD($rop, $op, $iv);
+    scalbln($op, $iv) is assigned to $rop.
+    $iv should not contain a value that won't fit into a signed
+    long int.
+
+   scalbn_LD($rop, $op, $iv);
+    scalbn($op, $iv) is assigned to $rop.
+    $iv should not contain a value that won't fir into a signed int.
+
+   $iv = signbit_LD($op);
+    signbit($op) is assigned to $iv.
+
+   sincos_LD($rop1, $rop2, $op);
+    sin($op) is assigned to $rop1.
+    cos($op) is assigned to $rop2.
+
+   sinh_LD($rop, $op);
+    sinh($op) is assigned to $rop.
+
+   sin_LD($rop, $op);
+    sin($op) is assigned to $rop.
+
+   sqrt_LD($rop, $op);
+    sqrt($op) is assigned to $rop.
+
+   tan_LD($rop, $op);
+    tan($op) is assigned to $rop.
+
+   tanh_LD($rop, $op);
+    tanh($op) is assigned to $rop.
+
+   tgamma_LD($rop, $op);
+    gamma($op) is assigned to $rop.
+
+   trunc_LD($rop, $op);
+    trunc($op) is assigned to $rop.
 
 
 =head1 BASE CONVERSIONS

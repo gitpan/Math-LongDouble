@@ -1,3 +1,9 @@
+ 0.07
+  - Add math library constants and functions.
+  - Add ld_bytes function.
+  - Allow overloading of UV, IV, NV and PV types.
+  - Remove support for *signed* NaN.
+
  0.06
   - Add -DOLDPERL capability to Makefile.PL
   - Add LD_LDBL_MANT_DIG and LD_DBL_MANT_DIG

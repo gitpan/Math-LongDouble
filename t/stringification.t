@@ -6,8 +6,8 @@ use Math::LongDouble qw(:all);
 
 print "1..7\n";
 
-my $nnan = LDtoNV(NaNLD(-1));
-my $pnan = LDtoNV(NaNLD(1));
+my $nnan = LDtoNV(NaNLD());
+my $pnan = LDtoNV(NaNLD());
 my $ninf = LDtoNV(InfLD(-1));
 my $pinf = LDtoNV(InfLD(1));
 my $negzero = LDtoNV(ZeroLD(-1));
@@ -84,14 +84,14 @@ else {
   print "not ok 5\n";
 }
 
-if(Math::LongDouble::_overload_string(NaNLD(1)) eq 'NaN') {print "ok 6\n"}
+if(Math::LongDouble::_overload_string(NaNLD()) eq 'NaN') {print "ok 6\n"}
 else {
-  warn "\nNaNLD(1): ", NaNLD(1), "\n";
+  warn "\nNaNLD(): ", NaNLD(), "\n";
   print "not ok 6\n";
 }
 
-if(Math::LongDouble::_overload_string(NaNLD(-1)) =~ /NaN/) {print "ok 7\n"}
+if(Math::LongDouble::_overload_string(NaNLD()) =~ /NaN/) {print "ok 7\n"}
 else {
-  warn "\nNaNLD(-1): ", NaNLD(-1), "\n";
+  warn "\nNaNLD(): ", NaNLD(), "\n";
   print "not ok 7\n";
 }
