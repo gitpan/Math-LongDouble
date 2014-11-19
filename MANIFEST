@@ -9,6 +9,7 @@ t/abs.t
 t/arith.t
 t/base_conversion.t
 t/bool.t
+t/constants.t
 t/cmp.t
 t/inc_dec.t
 t/int.t

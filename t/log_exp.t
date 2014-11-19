@@ -14,13 +14,13 @@ my $log_ld = log($exp_ld);
 my $two = Math::LongDouble->new(2.0);
 my $log = log($two);
 
-if(approx($exp_ld, $exp)) {print "ok 1\n"}
+if(approx($exp_ld, $exp, -50)) {print "ok 1\n"}
 else {
   warn "\n\$exp_ld: $exp_ld\n\$exp: $exp\n";
   print "not ok 1\n";
 }
 
-if(approx($log_ld, $n)) {print "ok 2\n"}
+if(approx($log_ld, $n, -50)) {print "ok 2\n"}
 else {
   warn "\n\$log_ld: $log_ld\n\$n: $n\n";
   print "not ok 2\n";
@@ -53,7 +53,7 @@ else {
   }
 }
 
-if(approx($log, Math::LongDouble->new('6.9314718055994530943e-001'))) {print "ok 6\n"}
+if(approx($log, Math::LongDouble->new('6.9314718055994530943e-001'), -50)) {print "ok 6\n"}
 else {
   warn "\n\$log: $log\n";
   print "not ok 6\n";
@@ -134,8 +134,11 @@ else {
   print "not ok 13\n";
 }
 
+# powerpc requires some leeway here. The compile-time rendition of log10l(10.0)
+# yields a precise result, but the runtime rendition of log10l(10.0) does not.
+
 log10_LD($check, NVtoLD(10.0));
-if($check == NVtoLD(1.0)) {print "ok 14\n"}
+if(approx($check, NVtoLD(1.0), -106)) {print "ok 14\n"}
 else {
   warn "\nExpected ", NVtoLD(1.0), " (", ld_bytes(NVtoLD(1.0)), ")\nGot $check (", ld_bytes($check), ")\n";
   print "not ok 14\n";
@@ -155,8 +158,11 @@ else {
   print "not ok 16\n";
 }
 
+# powerpc requires some leeway here (gcc-4.6.3). The compile-time rendition of powl(3.0. 4.0)
+# yields a precise result, but the runtime rendition of powl(3.0, 4.0) does not.
+
 pow_LD($check, NVtoLD(3), NVtoLD(4));
-if($check == NVtoLD(81.0)) {print "ok 17\n"}
+if(approx($check, NVtoLD(81.0), -104)) {print "ok 17\n"}
 else {
   warn "\nExpected ", NVtoLD(81.0), " (", ld_bytes(NVtoLD(81.0)), ")\nGot $check (", ld_bytes($check), ")\n";
   print "not ok 17\n";
@@ -167,7 +173,7 @@ my $flt_radix = Math::LongDouble::_flt_radix() || 2;
 
 
 scalbln_LD($check, NVtoLD(-543.25), 5);
-if(approx($check, -543.25 * ($flt_radix ** 5))) {print "ok 18\n"}
+if(approx($check, -543.25 * ($flt_radix ** 5), -50)) {print "ok 18\n"}
 else {
   warn "\nExpected approx ", -543.25 * ($flt_radix ** 5), "\nGot $check\n",
         " FLT_RADIX: $flt_radix\n";
@@ -175,7 +181,7 @@ else {
 }
 
 scalbn_LD($check, NVtoLD(-543.25), 5);
-if(approx($check, -543.25 * ($flt_radix ** 5))) {print "ok 19\n"}
+if(approx($check, -543.25 * ($flt_radix ** 5), -50)) {print "ok 19\n"}
 else {
   warn "\nExpected approx ", -543.25 * ($flt_radix ** 5), "\nGot $check\n",
         " FLT_RADIX: $flt_radix\n";
@@ -185,7 +191,7 @@ else {
 
 sub approx {
     my $eps = abs($_[0] - Math::LongDouble->new($_[1]));
-    return 0 if $eps > Math::LongDouble->new(0.000000001);
+    return 0 if $eps > 2 ** $_[2];
     return 1;
 }
 

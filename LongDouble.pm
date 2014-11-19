@@ -42,9 +42,20 @@ use overload
   '--'    => \&_overload_dec,
 ;
 
-use subs qw(LD_DBL_DIG LD_LDBL_DIG LD_DBL_MANT_DIG LD_LDBL_MANT_DIG);
+use subs qw(
+            LD_DBL_DIG LD_LDBL_DIG LD_DBL_MANT_DIG LD_LDBL_MANT_DIG
 
-our $VERSION = '0.07';
+            LD_DBL_MIN_EXP LD_DBL_MAX_EXP LD_DBL_MIN_10_EXP LD_DBL_MAX_10_EXP
+            LD_DBL_MAX LD_DBL_MIN LD_DBL_EPSILON LD_DBL_DENORM_MIN
+
+            LD_LDBL_MIN_EXP LD_LDBL_MAX_EXP LD_LDBL_MIN_10_EXP LD_LDBL_MAX_10_EXP
+            LD_LDBL_MAX LD_LDBL_MIN LD_LDBL_EPSILON LD_LDBL_DENORM_MIN
+
+            M_El M_LOG2El M_LOG10El M_LN2l M_LN10l M_PIl M_PI_2l M_PI_4l
+            M_1_PIl M_2_PIl  M_2_SQRTPIl M_SQRT2l M_SQRT1_2l
+            );
+
+our $VERSION = '0.08';
 #$VERSION = eval $VERSION;
 
 DynaLoader::bootstrap Math::LongDouble $Math::LongDouble::VERSION;
@@ -55,6 +66,15 @@ DynaLoader::bootstrap Math::LongDouble $Math::LongDouble::VERSION;
     LDtoNV LDtoLD cmp_NV
     ld_set_prec ld_get_prec LDtoSTRP
     LD_DBL_DIG LD_LDBL_DIG LD_DBL_MANT_DIG LD_LDBL_MANT_DIG
+
+    LD_DBL_MIN_EXP LD_DBL_MAX_EXP LD_DBL_MIN_10_EXP LD_DBL_MAX_10_EXP
+    LD_DBL_MAX LD_DBL_MIN LD_DBL_EPSILON LD_DBL_DENORM_MIN
+
+    LD_LDBL_MIN_EXP LD_LDBL_MAX_EXP LD_LDBL_MIN_10_EXP LD_LDBL_MAX_10_EXP
+    LD_LDBL_MAX LD_LDBL_MIN LD_LDBL_EPSILON LD_LDBL_DENORM_MIN
+
+    M_El M_LOG2El M_LOG10El M_LN2l M_LN10l M_PIl M_PI_2l M_PI_4l
+    M_1_PIl M_2_PIl  M_2_SQRTPIl M_SQRT2l M_SQRT1_2l
 
     ld_max_orig_len ld_min_inter_prec ld_min_inter_base ld_max_orig_base ld_bytes
 
@@ -73,6 +93,15 @@ DynaLoader::bootstrap Math::LongDouble $Math::LongDouble::VERSION;
     LDtoNV LDtoLD cmp_NV
     ld_set_prec ld_get_prec LDtoSTRP
     LD_DBL_DIG LD_LDBL_DIG LD_DBL_MANT_DIG LD_LDBL_MANT_DIG
+
+    LD_DBL_MIN_EXP LD_DBL_MAX_EXP LD_DBL_MIN_10_EXP LD_DBL_MAX_10_EXP
+    LD_DBL_MAX LD_DBL_MIN LD_DBL_EPSILON LD_DBL_DENORM_MIN
+
+    LD_LDBL_MIN_EXP LD_LDBL_MAX_EXP LD_LDBL_MIN_10_EXP LD_LDBL_MAX_10_EXP
+    LD_LDBL_MAX LD_LDBL_MIN LD_LDBL_EPSILON LD_LDBL_DENORM_MIN
+
+    M_El M_LOG2El M_LOG10El M_LN2l M_LN10l M_PIl M_PI_2l M_PI_4l
+    M_1_PIl M_2_PIl  M_2_SQRTPIl M_SQRT2l M_SQRT1_2l
 
     ld_max_orig_len ld_min_inter_prec ld_min_inter_base ld_max_orig_base ld_bytes
 
@@ -146,10 +175,41 @@ sub new {
     die "Bad argument given to new()";
 }
 
-sub LD_DBL_DIG       {return  _DBL_DIG()}
-sub LD_LDBL_DIG      {return _LDBL_DIG()}
-sub LD_DBL_MANT_DIG  {return  _DBL_MANT_DIG()}
-sub LD_LDBL_MANT_DIG {return _LDBL_MANT_DIG()}
+sub LD_DBL_DIG		{return _DBL_DIG()}
+sub LD_DBL_MANT_DIG	{return _DBL_MANT_DIG()}
+sub LD_DBL_MAX		{return _DBL_MAX()}
+sub LD_DBL_MIN		{return _DBL_MIN()}
+sub LD_DBL_EPSILON	{return _DBL_EPSILON()}
+sub LD_DBL_DENORM_MIN	{return _DBL_DENORM_MIN()}
+sub LD_DBL_MIN_EXP	{return _DBL_MIN_EXP()}
+sub LD_DBL_MAX_EXP	{return _DBL_MAX_EXP()}
+sub LD_DBL_MIN_10_EXP	{return _DBL_MIN_10_EXP()}
+sub LD_DBL_MAX_10_EXP	{return _DBL_MAX_10_EXP()}
+
+sub LD_LDBL_DIG		{return _LDBL_DIG()}
+sub LD_LDBL_MANT_DIG	{return _LDBL_MANT_DIG()}
+sub LD_LDBL_MAX		{return _LDBL_MAX()}
+sub LD_LDBL_MIN		{return _LDBL_MIN()}
+sub LD_LDBL_EPSILON	{return _LDBL_EPSILON()}
+sub LD_LDBL_DENORM_MIN	{return _LDBL_DENORM_MIN()}
+sub LD_LDBL_MIN_EXP	{return _LDBL_MIN_EXP()}
+sub LD_LDBL_MAX_EXP	{return _LDBL_MAX_EXP()}
+sub LD_LDBL_MIN_10_EXP	{return _LDBL_MIN_10_EXP()}
+sub LD_LDBL_MAX_10_EXP	{return _LDBL_MAX_10_EXP()}
+
+sub M_El		{return _M_El()}
+sub M_LOG2El		{return _M_LOG2El()}
+sub M_LOG10El		{return _M_LOG10El()}
+sub M_LN2l		{return _M_LN2l()}
+sub M_LN10l		{return _M_LN10l()}
+sub M_PIl		{return _M_PIl()}
+sub M_PI_2l		{return _M_PI_2l()}
+sub M_PI_4l		{return _M_PI_4l()}
+sub M_1_PIl		{return _M_1_PIl()}
+sub M_2_PIl		{return _M_2_PIl()}
+sub M_2_SQRTPIl		{return _M_2_SQRTPIl()}
+sub M_SQRT2l		{return _M_SQRT2l()}
+sub M_SQRT1_2l		{return _M_SQRT1_2l()}
 
 
 sub ld_min_inter_prec {
@@ -339,6 +399,107 @@ Math::LongDouble - perl interface to C's long double operations
     LDtoSTR).
 
 
+=head1 ASSIGNMENT OF FLOAT.H & MATH.H CONSTANTS
+
+   The following functions return their values as either normal
+   perl scalar integer values ($iv) or Math::LongDouble objects
+   ($ld), as appropriate.
+   Those LD_DBL_* functions that return 'double' values could have been
+   structured to return an NV, but they *do* return Math::LongDouble
+   objects - mainly for consistency with their LD_LDBL_* counterparts.
+
+    $iv = LD_DBL_DIG;
+    $iv = LD_LDBL_DIG;
+     Returns DBL_DIG/LDBL_DIG or croaks if DBL_DIG/LDBL_DIG is not
+     defined.
+
+    $ld = LD_DBL_MAX;
+    $ld = LD_LDBL_MAX;
+     Returns DBL_MAX/LDBL_MAX or croaks if DBL_MAX/LDBL_MAX is not defined.
+
+    $ld = LD_DBL_MIN;
+    $ld = LD_LDBL_MIN;
+     Returns DBL_MIN/LDBL_MIN or croaks if DBL_MIN/LDBL_MIN is not defined.
+
+    $ld = LD_DBL_EPSILON;
+    $ld = LD_LDBL_EPSILON;
+     Returns DBL_EPSILON/LDBL_EPSILON or croaks if
+     DBL_EPSILON/LDBL_EPSILON is not defined.
+
+    $ld = LD_DBL_DENORM_MIN;
+    $ld = LD_LDBL_DENORM_MIN;
+     Returns DBL_DENORM_MIN/LDBL_DENORM_MIN or croaks if
+     DBL_DENORM_MIN/LDBL_DENORM_MIN is not defined.
+
+    $iv = LD_DBL_MANT_DIG;
+    $iv = LD_LDBL_MANT_DIG;
+     Returns DBL_MANT_DIG/LDBL_MANT_DIG or croaks if
+     DBL_MANT_DIG/LDBL_MANT_DIG is not defined.
+
+    $iv = LD_DBL_MIN_EXP;
+    $iv = LD_LDBL_MIN_EXP;
+     Returns DBL_MIN_EXP/LDBL_MIN_EXP or croaks if
+     DBL_MIN_EXP/LDBL_MIN_EXP is not defined.
+
+    $iv = LD_DBL_MAX_EXP;
+    $iv = LD_LDBL_MAX_EXP;
+     Returns DBL_MAX_EXP/LDBL_MAX_EXP or croaks if
+     DBL_MAX_EXP/LDBL_MAX_EXP is not defined.
+
+    $iv = LD_DBL_MIN_10_EXP;
+    $iv = LD_LDBL_MIN_10_EXP;
+     Returns DBL_MIN_10_EXP/LDBL_MIN_10_EXP or croaks if
+     DBL_MIN_10_EXP/LDBL_MIN_10_EXP is not defined.
+
+    $iv = LD_DBL_MAX_10_EXP;
+    $iv = LD_LDBL_MAX_10_EXP;
+     Returns DBL_MAX_10_EXP/LDBL_MAX_10_EXP or croaks if
+     DBL_MAX_10_EXP/LDBL_MAX_10_EXP is not defined.
+
+    $ld = M_El;
+     Returns M_El (e) or expl(1.0) if M_El is not defined.
+
+    $ld = M_LOG2El;
+     Returns M_LOG2El or log2l(expl(1.0)) if M_LOG2El is not
+     defined.
+
+    $ld = M_LOG10El;
+     Returns M_LOG10El or log10l(expl(1.0)) if M_LOG10El is not
+     defined.
+
+    $ld = M_LN2l;
+     Returns M_LN2l or logl(2) if M_LN2l is not defined.
+
+    $ld = M_LN10l;
+     Returns M_LN10l or logl(10) if M_LN10l is not defined.
+
+    $ld = M_PIl;
+     Returns M_PIl (pi) or 2 * asinl(1) if M_PIl is not defined.
+
+    $ld = M_PI_2l;
+     Returns M_PI_2l (pi/2) or asinl(1) if M_PI_2l is not defined.
+
+    $ld = M_PI_4l;
+     Returns M_PI_4l (pi/4) or asinl(1)/2 if M_PI_4l is not defined.
+
+    $ld = M_1_PIl;
+     Returns M_1_PIl (1/pi) or 0.5/asinl(1) if M_1_PIl is not
+     defined.
+
+    $ld = M_2_PIl;
+     Returns M_2_PIl (2/pi) or 1/asinl(1) if M_2_PIl is not defined.
+
+    $ld = M_2_SQRTPIl;
+     Returns M_2_SQRTPIl (2/sqrt(pi)) or 2/sqrtl(pi) if M_2_SQRTPIl
+     is not defined.
+
+    $ld = M_SQRT2l;
+     Returns M_SQRT2l or sqrtl(2)) if M_SQRT2l is not defined.
+
+    $ld = M_SQRT1_2l;
+     Returns M_SQRT1_2l or 1/sqrtl(2)) if M_SQRT1_2l is not defined.
+
+
 
 =head1 RETRIEVAL FUNCTIONS
 
@@ -361,35 +522,6 @@ Math::LongDouble - perl interface to C's long double operations
    $string = LDtoSTRP($ld, $precision);
     Same as LDtoSTR, but takes an additional arg that specifies the
     precision (in decimal digits) of the stringified return value.
-
-
-=head1 OTHER FUNCTIONS
-
-   $bool = is_NaNLD($ld);
-    Returns 1 if $ld is a Math::LongDouble NaN.
-    Else returns 0
-
-   $int = is_InfLD($ld)
-    If the Math::LongDouble object $ld is -inf, returns -1.
-    If it is +inf, returns 1.
-    Otherwise returns 0.
-
-   $int = is_ZeroLD($ld);
-    If the Math::LongDouble object $ld is -0, returns -1.
-    If it is zero, returns 1.
-    Otherwise returns 0.
-
-   $int = cmp_NV($ld, $nv);
-    $nv can be any perl number - ie NV, UV or IV.
-    If the Math::LongDouble object $ld < $nv returns -1.
-    If it is > $nv, returns 1.
-    Otherwise returns 0.
-
-   $hex = ld_bytes($ld);
-    Returns the  hex representation of the value held by $f as a
-    string of X hex characters, where X == the size of the long
-    double (in bytes) multiplied by 2.
-
 
 =head1 MATH LIBRARY FUNCTIONS
 
@@ -562,7 +694,6 @@ Math::LongDouble - perl interface to C's long double operations
     compilers. Therefore, this function is not tested in the test suite.
     Use it at your own risk.
 
-
    $iv = rint_LD($op);
     rint($op) is assigned to $rop.
 
@@ -607,25 +738,36 @@ Math::LongDouble - perl interface to C's long double operations
     trunc($op) is assigned to $rop.
 
 
+=head1 OTHER FUNCTIONS
+
+   $bool = is_NaNLD($ld);
+    Returns 1 if $ld is a Math::LongDouble NaN.
+    Else returns 0
+
+   $int = is_InfLD($ld)
+    If the Math::LongDouble object $ld is -inf, returns -1.
+    If it is +inf, returns 1.
+    Otherwise returns 0.
+
+   $int = is_ZeroLD($ld);
+    If the Math::LongDouble object $ld is -0, returns -1.
+    If it is zero, returns 1.
+    Otherwise returns 0.
+
+   $int = cmp_NV($ld, $nv);
+    $nv can be any perl number - ie NV, UV or IV.
+    If the Math::LongDouble object $ld < $nv returns -1.
+    If it is > $nv, returns 1.
+    Otherwise returns 0.
+
+   $hex = ld_bytes($ld);
+    Returns the  hex representation of the value held by $ld as a
+    string of X hex characters, where X == the size of the long
+    double (in bytes) multiplied by 2.
+
+
 =head1 BASE CONVERSIONS
 
-   $DBL_DIG  = LD_DBL_DIG;  # The value specified by float.h's DBL_DIG.
-                            # Will be set to 0 if float.h doesn't define
-                            # DBL_DIG.
-
-   $LDBL_DIG = LD_LDBL_DIG; # The value specified by float.h's LDBL_DIG.
-                            # Will be set to 0 if float.h doesn't define
-                            # LDBL_DIG.
-
-   $DBL_MANT_DIG  = LD_DBL_MANT_DIG;
-                            # The value specified by float.h's
-                            # DBL_MANT_DIG.Will be set to 0 if float.h
-                            # doesn't define DBL_MANT_DIG.
-
-   $LDBL_MANT_DIG = LD_LDBL_MANT_DIG;
-                            # The value specified by float.h's
-                            # LDBL_MANT_DIG.Will be set to 0 if float.h
-                            # doesn't define LDBL_MANT_DIG.
 
    $min_prec = ld_min_inter_prec($orig_base, $orig_length, $to_base);
    $max_len  = ld_max_orig_len($orig_base, $to_base, $to_prec);

@@ -57,6 +57,20 @@ Is this being overly restrictive ? (I suspect so.)
 
 typedef long double ldbl;
 
+void _print_bytes(const void* p, int n) {
+  int i;
+  printf("DEBUG: ");
+#ifdef WE_HAVE_BENDIAN /* Big Endian architecture */
+  for (i = 0; i < n; i++) {
+#else
+  for (i = n - 1; i >= 0; i--) {
+#endif
+    printf("%02x", ((const unsigned char*)p)[i]);
+  }
+  printf("\n");
+}
+
+
 void ld_set_prec(pTHX_ int x) {
     if(x < 1)croak("1st arg (precision) to ld_set_prec must be at least 1");
     _DIGITS = x;
@@ -1535,7 +1549,7 @@ void log_LD(ldbl * rop, ldbl * op) {
   *rop = logl(*op);
 }
 
-void log10_LD(ldbl * rop, ldbl * op) {
+void log10_LD(pTHX_ ldbl * rop, ldbl * op) {
   *rop = log10l(*op);
 }
 
@@ -1565,7 +1579,7 @@ void nextafter_LD(ldbl * rop, ldbl * op1, ldbl * op2) {
   *rop = nextafterl(*op1, *op2);
 }
 
-void pow_LD(ldbl * rop, ldbl * op1, ldbl * op2) {
+void pow_LD(pTHX_ ldbl * rop, ldbl * op1, ldbl * op2) {
   *rop = powl(*op1, *op2);
 }
 
@@ -1574,7 +1588,7 @@ void remainder_LD(ldbl * rop, ldbl * op1, ldbl * op2) {
 }
 
 /*
-remquo_LD seems buggy with some compilers, and is therefore not tested.
+remquol seems buggy with some compilers, and is therefore not tested.
 Just wrap it, document that it's untested, and don't worry about it.
 */
 
@@ -1687,10 +1701,553 @@ int _flt_radix(void) {
 }
 
 
+
+SV * _LDBL_MAX(pTHX) {
+#ifdef LDBL_MAX
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _LDBL_MAX function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = LDBL_MAX;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+#else
+     croak("LDBL_MAX not implemented");
+#endif
+}
+
+SV * _LDBL_MIN(pTHX) {
+#ifdef LDBL_MIN
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _LDBL_MIN function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = LDBL_MIN;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+#else
+     croak("LDBL_MIN not implemented");
+#endif
+}
+
+SV * _LDBL_EPSILON(pTHX) {
+#ifdef LDBL_EPSILON
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _LDBL_EPSILON function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = LDBL_EPSILON;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+#else
+     croak("LDBL_EPSILON not implemented");
+#endif
+}
+
+SV * _LDBL_DENORM_MIN(pTHX) {
+#ifdef LDBL_DENORM_MIN
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _LDBL_DENORM_MIN function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = LDBL_DENORM_MIN;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+#else
+     croak("LDBL_DENORM_MIN not implemented");
+#endif
+}
+
+int _LDBL_MIN_EXP(pTHX) {
+#ifdef LDBL_MIN_EXP
+    return (int)LDBL_MIN_EXP;
+#else
+    croak("LDBL_MIN_EXP not implemented");
+#endif
+}
+
+int _LDBL_MAX_EXP(pTHX) {
+#ifdef LDBL_MAX_EXP
+    return (int)LDBL_MAX_EXP;
+#else
+    croak("LDBL_MAX_EXP not implemented");
+#endif
+}
+
+int _LDBL_MIN_10_EXP(pTHX) {
+#ifdef LDBL_MIN_10_EXP
+    return (int)LDBL_MIN_10_EXP;
+#else
+    croak("LDBL_MIN_10_EXP not implemented");
+#endif
+}
+
+int _LDBL_MAX_10_EXP(pTHX) {
+#ifdef LDBL_MAX_10_EXP
+    return (int)LDBL_MAX_10_EXP;
+#else
+    croak("LDBL_MAX_10_EXP not implemented");
+#endif
+}
+
+
+
+SV * _DBL_MAX(pTHX) {
+#ifdef DBL_MAX
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _DBL_MAX function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = (long double)DBL_MAX;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+#else
+     croak("DBL_MAX not implemented");
+#endif
+}
+
+SV * _DBL_MIN(pTHX) {
+#ifdef DBL_MIN
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _DBL_MIN function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = (long double)DBL_MIN;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+#else
+     croak("DBL_MIN not implemented");
+#endif
+}
+
+SV * _DBL_EPSILON(pTHX) {
+#ifdef DBL_EPSILON
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _DBL_EPSILON function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = (long double)DBL_EPSILON;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+#else
+     croak("DBL_EPSILON not implemented");
+#endif
+}
+
+SV * _DBL_DENORM_MIN(pTHX) {
+#ifdef DBL_DENORM_MIN
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _DBL_DENORM_MIN function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = (long double)DBL_DENORM_MIN;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+#else
+     croak("DBL_DENORM_MIN not implemented");
+#endif
+}
+
+int _DBL_MIN_EXP(pTHX) {
+#ifdef DBL_MIN_EXP
+    return (int)DBL_MIN_EXP;
+#else
+    croak("DBL_MIN_EXP not implemented");
+#endif
+}
+
+int _DBL_MAX_EXP(pTHX) {
+#ifdef DBL_MAX_EXP
+    return (int)DBL_MAX_EXP;
+#else
+    croak("DBL_MAX_EXP not implemented");
+#endif
+}
+
+int _DBL_MIN_10_EXP(pTHX) {
+#ifdef DBL_MIN_10_EXP
+    return (int)DBL_MIN_10_EXP;
+#else
+    croak("DBL_MIN_10_EXP not implemented");
+#endif
+}
+
+int _DBL_MAX_10_EXP(pTHX) {
+#ifdef DBL_MAX_10_EXP
+    return (int)DBL_MAX_10_EXP;
+#else
+    croak("DBL_MAX_10_EXP not implemented");
+#endif
+}
+
+/* #define M_E			2.7182818284590452354	*/
+
+SV * _M_El(pTHX) {
+#ifndef M_El
+#define M_El expl(1.0L)
+#endif
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _M_E function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = M_El;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+}
+
+/* #define M_LOG2E		1.4426950408889634074	*/
+
+SV * _M_LOG2El(pTHX) {
+#ifndef M_LOG2El
+#define M_LOG2El log2l(expl(1.0L))
+#endif
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _M_LOG2E function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = M_LOG2El;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+}
+
+/* #define M_LOG10E		0.43429448190325182765	*/
+
+SV * _M_LOG10El(pTHX) {
+#ifndef M_LOG10El
+#define M_LOG10El log10l(expl(1.0L))
+#endif
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _M_LOG10E function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = M_LOG10El;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+}
+
+/* #define M_LN2		0.69314718055994530942	*/
+
+SV * _M_LN2l(pTHX) {
+#ifndef M_LN2l
+#define M_LN2l logl(2.0L)
+#endif
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _M_LN2 function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = M_LN2l;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+}
+
+/* #define M_LN10		2.30258509299404568402	*/
+
+SV * _M_LN10l(pTHX) {
+#ifndef M_LN10l
+#define M_LN10l logl(10.0L)
+#endif
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _M_LN10 function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = M_LN10l;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+}
+
+/* #define M_PI			3.14159265358979323846	*/
+
+SV * _M_PIl(pTHX) {
+#ifndef M_PIl
+#define M_PIl 2.0L*asinl(1.0L)
+#endif
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _M_PI function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = M_PIl;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+}
+
+/* #define M_PI_2		1.57079632679489661923	*/
+
+SV * _M_PI_2l(pTHX) {
+#ifndef M_PI_2l
+#define M_PI_2l asinl(1.0L)
+#endif
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _M_PI_2 function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = M_PI_2l;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+}
+
+/* #define M_PI_4		0.78539816339744830962	*/
+
+SV * _M_PI_4l(pTHX) {
+#ifndef M_PI_4l
+#define M_PI_4l asinl(1.0L)/2
+#endif
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _M_PI_4 function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = M_PI_4l;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+}
+
+/* #define M_1_PI		0.31830988618379067154	*/
+
+SV * _M_1_PIl(pTHX) {
+#ifndef M_1_PIl
+#define M_1_PIl 0.5L/asinl(1.0L)
+#endif
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _M_1_PI function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = M_1_PIl;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+}
+
+/* #define M_2_PI		0.63661977236758134308	*/
+
+SV * _M_2_PIl(pTHX) {
+#ifndef M_2_PIl
+#define M_2_PIl 1.0L/asinl(1.0L)
+#endif
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _M_2_PI function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = M_2_PIl;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+}
+
+/* #define M_2_SQRTPI		1.12837916709551257390	*/
+
+SV * _M_2_SQRTPIl(pTHX) {
+#ifndef M_2_SQRTPIl
+#define M_2_SQRTPIl 2.0L/sqrtl(2.0L*asinl(1.0L))
+#endif
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _M_2_SQRTPI function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = M_2_SQRTPIl;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+}
+
+/* #define M_SQRT2		1.41421356237309504880	*/
+
+SV * _M_SQRT2l(pTHX) {
+#ifndef M_SQRT2l
+#define M_SQRT2l sqrtl(2.0L)
+#endif
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _M_SQRT2 function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = M_SQRT2l;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+}
+
+/* #define M_SQRT1_2		0.70710678118654752440	*/
+
+SV * _M_SQRT1_2l(pTHX) {
+#ifndef M_SQRT1_2l
+#define M_SQRT1_2l 1.0L/sqrtl(2.0L)
+#endif
+     long double * f;
+     SV * obj_ref, * obj;
+
+     Newx(f, 1, long double);
+     if(f == NULL) croak("Failed to allocate memory in _M_SQRT1_2 function");
+
+     obj_ref = newSV(0);
+     obj = newSVrv(obj_ref, "Math::LongDouble");
+
+     *f = M_SQRT1_2l;
+
+     sv_setiv(obj, INT2PTR(IV,f));
+     SvREADONLY_on(obj);
+     return obj_ref;
+}
+
+
+
+
+
+
 MODULE = Math::LongDouble  PACKAGE = Math::LongDouble
 
 PROTOTYPES: DISABLE
 
+
+void
+_print_bytes (p, n)
+	void *	p
+	int	n
+        PREINIT:
+        I32* temp;
+        PPCODE:
+        temp = PL_markstack_ptr++;
+        _print_bytes(p, n);
+        if (PL_markstack_ptr != temp) {
+          /* truly void, because dXSARGS not invoked */
+          PL_markstack_ptr = temp;
+          XSRETURN_EMPTY; /* return empty stack */
+        }
+        /* must have used dXSARGS; list context implied */
+        return; /* assume stack size is correct */
 
 void
 ld_set_prec (x)
@@ -2745,7 +3302,7 @@ log10_LD (rop, op)
         I32* temp;
         PPCODE:
         temp = PL_markstack_ptr++;
-        log10_LD(rop, op);
+        log10_LD(aTHX_ rop, op);
         if (PL_markstack_ptr != temp) {
           /* truly void, because dXSARGS not invoked */
           PL_markstack_ptr = temp;
@@ -2867,7 +3424,7 @@ pow_LD (rop, op1, op2)
         I32* temp;
         PPCODE:
         temp = PL_markstack_ptr++;
-        pow_LD(rop, op1, op2);
+        pow_LD(aTHX_ rop, op1, op2);
         if (PL_markstack_ptr != temp) {
           /* truly void, because dXSARGS not invoked */
           PL_markstack_ptr = temp;
@@ -3141,5 +3698,208 @@ _long2iv_is_ok ()
 
 int
 _flt_radix ()
+
+
+SV *
+_LDBL_MAX ()
+CODE:
+  RETVAL = _LDBL_MAX (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_LDBL_MIN ()
+CODE:
+  RETVAL = _LDBL_MIN (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_LDBL_EPSILON ()
+CODE:
+  RETVAL = _LDBL_EPSILON (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_LDBL_DENORM_MIN ()
+CODE:
+  RETVAL = _LDBL_DENORM_MIN (aTHX);
+OUTPUT:  RETVAL
+
+
+int
+_LDBL_MIN_EXP ()
+CODE:
+  RETVAL = _LDBL_MIN_EXP (aTHX);
+OUTPUT:  RETVAL
+
+
+int
+_LDBL_MAX_EXP ()
+CODE:
+  RETVAL = _LDBL_MAX_EXP (aTHX);
+OUTPUT:  RETVAL
+
+
+int
+_LDBL_MIN_10_EXP ()
+CODE:
+  RETVAL = _LDBL_MIN_10_EXP (aTHX);
+OUTPUT:  RETVAL
+
+
+int
+_LDBL_MAX_10_EXP ()
+CODE:
+  RETVAL = _LDBL_MAX_10_EXP (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_DBL_MAX ()
+CODE:
+  RETVAL = _DBL_MAX (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_DBL_MIN ()
+CODE:
+  RETVAL = _DBL_MIN (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_DBL_EPSILON ()
+CODE:
+  RETVAL = _DBL_EPSILON (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_DBL_DENORM_MIN ()
+CODE:
+  RETVAL = _DBL_DENORM_MIN (aTHX);
+OUTPUT:  RETVAL
+
+
+int
+_DBL_MIN_EXP ()
+CODE:
+  RETVAL = _DBL_MIN_EXP (aTHX);
+OUTPUT:  RETVAL
+
+
+int
+_DBL_MAX_EXP ()
+CODE:
+  RETVAL = _DBL_MAX_EXP (aTHX);
+OUTPUT:  RETVAL
+
+
+int
+_DBL_MIN_10_EXP ()
+CODE:
+  RETVAL = _DBL_MIN_10_EXP (aTHX);
+OUTPUT:  RETVAL
+
+
+int
+_DBL_MAX_10_EXP ()
+CODE:
+  RETVAL = _DBL_MAX_10_EXP (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_M_El ()
+CODE:
+  RETVAL = _M_El (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_M_LOG2El ()
+CODE:
+  RETVAL = _M_LOG2El (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_M_LOG10El ()
+CODE:
+  RETVAL = _M_LOG10El (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_M_LN2l ()
+CODE:
+  RETVAL = _M_LN2l (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_M_LN10l ()
+CODE:
+  RETVAL = _M_LN10l (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_M_PIl ()
+CODE:
+  RETVAL = _M_PIl (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_M_PI_2l ()
+CODE:
+  RETVAL = _M_PI_2l (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_M_PI_4l ()
+CODE:
+  RETVAL = _M_PI_4l (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_M_1_PIl ()
+CODE:
+  RETVAL = _M_1_PIl (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_M_2_PIl ()
+CODE:
+  RETVAL = _M_2_PIl (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_M_2_SQRTPIl ()
+CODE:
+  RETVAL = _M_2_SQRTPIl (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_M_SQRT2l ()
+CODE:
+  RETVAL = _M_SQRT2l (aTHX);
+OUTPUT:  RETVAL
+
+
+SV *
+_M_SQRT1_2l ()
+CODE:
+  RETVAL = _M_SQRT1_2l (aTHX);
+OUTPUT:  RETVAL
 
 
