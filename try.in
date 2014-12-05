@@ -1,0 +1,16 @@
+/*
+Check whether erfl can be linked.
+*/
+
+#include <stdio.h>
+#include <math.h>
+
+int main(void) {
+ long double rop, op = 0.6L;
+
+ rop = erfl(op);
+
+ return 0;
+
+}
+

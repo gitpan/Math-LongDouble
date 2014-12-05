@@ -85,8 +85,11 @@ cbrt_LD($check, NVtoLD(27.0));
 
 if($check == NVtoLD(3.0)) {print "ok 12\n"}
 else {
+  warn "Looks like another glibc bug. Update glibc if possible\n";
   warn "\nExpected 3.0\nGot $check\n";
-  print "not ok 12\n";
+  warn "\nExpected ", ld_bytes(Math::LongDouble->new('3.0')), "\nGot ", ld_bytes($check), "\n";
+  if(approx(3.0, $check)) {print "ok 12\n"}
+  else {print "not ok 12\n"}
 }
 
 sqrt_LD($check, NVtoLD(25.0));
@@ -158,3 +161,12 @@ else {
   warn "\nExpected 0\nGot $check\n";
   print "not ok 20\n";
 }
+
+########################################################
+
+sub approx {
+    my $eps = abs($_[0] - Math::LongDouble->new($_[1]));
+    return 0 if  $eps > Math::LongDouble->new(0.000000001);
+    return 1;
+}
+

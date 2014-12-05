@@ -1,0 +1,33 @@
+/*
+Check whether NaN ** 0 == 1.
+*/
+
+#ifdef __MINGW32__
+#ifndef __USE_MINGW_ANSI_STDIO
+#define __USE_MINGW_ANSI_STDIO 1
+#endif
+#endif
+
+#include <stdio.h>
+#include <math.h>
+
+int main(void) {
+ long double check, rop;
+
+ rop = nanl("0");
+
+ if(rop == rop) printf("rop should be NaN but rop == rop\n");
+
+ else {
+   check = powl(rop, 0.0L);
+   if(check == 1.0L) printf("1.0L\n");
+   else {
+     if(check != check) printf("NaN\n");
+     else printf("%Le\n", rop);
+   }
+ }
+
+ return 0;
+
+}
+

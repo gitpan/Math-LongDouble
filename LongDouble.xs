@@ -1237,35 +1237,77 @@ SV * _overload_pow(pTHX_ SV * a, SV * b, SV * third) {
      if(SvUOK(b)) {
        if(third == &PL_sv_yes)
             *ld = powl((ldbl)SvUV(b), *(INT2PTR(ldbl *, SvIV(SvRV(a)))));
-       else *ld = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), (ldbl)SvUV(b));
+       else {
+#ifdef NAN_POW_BUG
+         if(_is_nan(*(INT2PTR(ldbl *, SvIV(SvRV(a))))) && SvUV(b) == 0) *ld = 1.0L;
+         else *ld = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), (ldbl)SvUV(b));
+#else
+         *ld = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), (ldbl)SvUV(b));
+#endif
+       }
        return obj_ref;
      }
 
      if(SvIOK(b)) {
        if(third == &PL_sv_yes)
             *ld = powl((ldbl)SvIV(b), *(INT2PTR(ldbl *, SvIV(SvRV(a)))));
-       else *ld = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), (ldbl)SvIV(b));
+       else {
+#ifdef NAN_POW_BUG
+         if(_is_nan(*(INT2PTR(ldbl *, SvIV(SvRV(a))))) && SvIV(b) == 0) *ld = 1.0L;
+         else *ld = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), (ldbl)SvIV(b));
+#else
+         *ld = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), (ldbl)SvIV(b));
+#endif
+       }
        return obj_ref;
      }
 
      if(SvNOK(b)) {
+#ifdef NAN_POW_BUG
+       if(third == &PL_sv_yes) {
+         if(_is_nan(SvNV(b)) && *(INT2PTR(ldbl *, SvIV(SvRV(a)))) == 0) *ld = 1.0L;
+         else *ld = powl((ldbl)SvNV(b), *(INT2PTR(ldbl *, SvIV(SvRV(a)))));
+       }
+       else {
+         if(_is_nan(*(INT2PTR(ldbl *, SvIV(SvRV(a))))) && SvNV(b) == 0) *ld = 1.0L;
+         else *ld = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), (ldbl)SvNV(b));
+       }
+#else
        if(third == &PL_sv_yes)
             *ld = powl((ldbl)SvNV(b), *(INT2PTR(ldbl *, SvIV(SvRV(a)))));
        else *ld = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), (ldbl)SvNV(b));
+#endif
        return obj_ref;
      }
 
      if(SvPOK(b)) {
+#ifdef NAN_POW_BUG
+       if(third == &PL_sv_yes) {
+         if(_is_nan(strtold(SvPV_nolen(b), NULL)) && *(INT2PTR(ldbl *, SvIV(SvRV(a)))) == 0.0L) *ld = 1.0L;
+         else *ld = powl(strtold(SvPV_nolen(b), NULL), *(INT2PTR(ldbl *, SvIV(SvRV(a)))));
+       }
+       else {
+         if(_is_nan(*(INT2PTR(ldbl *, SvIV(SvRV(a))))) && strtold(SvPV_nolen(b), NULL) == 0.0L) *ld = 1.0L;
+         else *ld = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), strtold(SvPV_nolen(b), NULL));
+       }
+#else
        if(third == &PL_sv_yes)
             *ld = powl(strtold(SvPV_nolen(b), NULL), *(INT2PTR(ldbl *, SvIV(SvRV(a)))));
        else *ld = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), strtold(SvPV_nolen(b), NULL));
+#endif
        return obj_ref;
      }
 
     if(sv_isobject(b)) {
        const char *h = HvNAME(SvSTASH(SvRV(b)));
        if(strEQ(h, "Math::LongDouble")) {
+#ifdef NAN_POW_BUG
+        if(_is_nan(*(INT2PTR(long double *, SvIV(SvRV(a)))))
+                && *(INT2PTR(long double *, SvIV(SvRV(b)))) == 0.0L ) *ld = 1.0L;
+        else *ld = powl(*(INT2PTR(long double *, SvIV(SvRV(a)))), *(INT2PTR(long double *, SvIV(SvRV(b)))));
+#else
         *ld = powl(*(INT2PTR(long double *, SvIV(SvRV(a)))), *(INT2PTR(long double *, SvIV(SvRV(b)))));
+#endif
         return obj_ref;
       }
       croak("Invalid object supplied to Math::LongDouble::_overload_pow function");
@@ -1278,34 +1320,72 @@ SV * _overload_pow_eq(pTHX_ SV * a, SV * b, SV * third) {
     SvREFCNT_inc(a);
 
     if(SvUOK(b)) {
+#ifdef NAN_POW_BUG
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) = _is_nan(*(INT2PTR(ldbl *, SvIV(SvRV(a))))) && SvUV(b) == 0
+                                         ? 1.0L
+                                         : powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))),
+                                                    (ldbl)SvUV(b));
+#else
        *(INT2PTR(ldbl *, SvIV(SvRV(a)))) = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))),
                                                     (ldbl)SvUV(b));
+#endif
         return a;
     }
 
     if(SvIOK(b)) {
+#ifdef NAN_POW_BUG
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) = _is_nan(*(INT2PTR(ldbl *, SvIV(SvRV(a))))) && SvIV(b) == 0
+                                         ? 1.0L
+                                         : powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))),
+                                                    (ldbl)SvIV(b));
+#else
        *(INT2PTR(ldbl *, SvIV(SvRV(a)))) = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))),
                                                     (ldbl)SvIV(b));
+#endif
         return a;
     }
 
     if(SvNOK(b)) {
+#ifdef NAN_POW_BUG
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) = (_is_nan(*(INT2PTR(ldbl *, SvIV(SvRV(a))))) && SvNV(b) == 0) ||
+                                           (_is_nan(SvNV(b)) && *(INT2PTR(ldbl *, SvIV(SvRV(a)))) == 0.0L)
+                                         ? 1.0L
+                                         : powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))),
+                                                    (ldbl)SvNV(b));
+#else
        *(INT2PTR(ldbl *, SvIV(SvRV(a)))) = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))),
                                                     (ldbl)SvNV(b));
+#endif
         return a;
     }
 
     if(SvPOK(b)) {
+#ifdef NAN_POW_BUG
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) = _is_nan(*(INT2PTR(ldbl *, SvIV(SvRV(a))))) &&
+                                           strtold(SvPV_nolen(b), NULL) == 0.0L
+                                         ? 1.0L
+                                         : powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))),
+                                                    strtold(SvPV_nolen(b), NULL));
+#else
        *(INT2PTR(ldbl *, SvIV(SvRV(a)))) = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))),
                                                     strtold(SvPV_nolen(b), NULL));
+#endif
         return a;
     }
 
     if(sv_isobject(b)) {
        const char *h = HvNAME(SvSTASH(SvRV(b)));
        if(strEQ(h, "Math::LongDouble")) {
+#ifdef NAN_POW_BUG
+       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) = _is_nan(*(INT2PTR(ldbl *, SvIV(SvRV(a))))) &&
+                                                   *(INT2PTR(ldbl *, SvIV(SvRV(b)))) == 0.0L
+                                         ? 1.0L
+                                         : powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))),
+                                                    (ldbl)SvNV(b));
+#else
         *(INT2PTR(long double *, SvIV(SvRV(a)))) = powl(*(INT2PTR(long double *, SvIV(SvRV(a)))),
                                                         *(INT2PTR(long double *, SvIV(SvRV(b)))));
+#endif
         return a;
       }
       SvREFCNT_dec(a);
@@ -1580,7 +1660,12 @@ void nextafter_LD(ldbl * rop, ldbl * op1, ldbl * op2) {
 }
 
 void pow_LD(pTHX_ ldbl * rop, ldbl * op1, ldbl * op2) {
+#ifdef NAN_POW_BUG
+  if(_is_nan(*op1) && *op2 == 0.0L) *rop = 1.0L;
+  else *rop = powl(*op1, *op2);
+#else
   *rop = powl(*op1, *op2);
+#endif
 }
 
 void remainder_LD(ldbl * rop, ldbl * op1, ldbl * op2) {
@@ -2222,7 +2307,13 @@ SV * _M_SQRT1_2l(pTHX) {
      return obj_ref;
 }
 
-
+int _nan_pow_bug(void) {
+#ifdef NAN_POW_BUG
+  return 1;
+#else
+  return 0;
+#endif
+}
 
 
 
@@ -3901,5 +3992,9 @@ _M_SQRT1_2l ()
 CODE:
   RETVAL = _M_SQRT1_2l (aTHX);
 OUTPUT:  RETVAL
+
+
+int
+_nan_pow_bug ()
 
 

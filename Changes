@@ -1,3 +1,9 @@
+ 0.09
+  - Work around bug on some compilers that has nan**0 is NaN.
+  - Allow less stringent checking on cbrt() calculations that should return
+    an integer value. (This accommodates a minor, but nonetheless annoying,
+    bug with some libc versions.)
+
  0.08
   - Provide more float.h and math.h constants.
 

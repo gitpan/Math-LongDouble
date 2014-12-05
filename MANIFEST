@@ -4,6 +4,8 @@ LongDouble.pm
 LongDouble.xs
 README
 Changes
+try.in
+try2.in
 t/aab_basic.t
 t/abs.t
 t/arith.t
@@ -15,6 +17,7 @@ t/inc_dec.t
 t/int.t
 t/log_exp.t
 t/new.t
+t/nan_pow.t
 t/overload.t
 t/pod.t
 t/pow.t
