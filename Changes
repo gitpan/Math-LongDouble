@@ -1,3 +1,9 @@
+ 0.10
+  - Fix checking for nan**0 bug.
+  - Modify t/nan_pow.t and t/overload.t to accommodate nan**0 bug.
+  - Check for (and workaround) absence of isnanl(). (Assume that if isnanl
+    is missing then so is nanl - and work around that, too.)
+
  0.09
   - Work around bug on some compilers that has nan**0 is NaN.
   - Allow less stringent checking on cbrt() calculations that should return

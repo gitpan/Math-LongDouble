@@ -13,6 +13,8 @@ my $nunity = UnityLD(-1);
 my $inf = InfLD(1);
 my $ninf = InfLD(-1);
 
+warn "\nMath::LongDouble::_have_isnanl() returns ", Math::LongDouble::_have_isnanl(), "\n";
+
 if(abs($nunity) == $unity) {print "ok 1\n"}
 else {
   warn "abs(\$nunity): ", abs($nunity), "\n\$unity: $unity\n";

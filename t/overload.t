@@ -702,10 +702,16 @@ else {
   print "not ok 22\n";
 }
 
-if($nan ** ZeroLD(1) == 1) {print "ok 23\n"}
+if(Math::LongDouble::_nan_pow_bug()) {
+  warn "\n Skip test 23 - nan**0 is miscalculated by this compiler/libc\n";
+  print "ok 23\n";
+}
 else {
-  warn "\n23: ", $nan ** ZeroLD(1), "\n";
-  print "not ok 23\n";
+  if($nan ** ZeroLD(1) == 1) {print "ok 23\n"}
+  else {
+    warn "\n23: ", $nan ** ZeroLD(1), "\n";
+    print "not ok 23\n";
+  }
 }
 
 #############

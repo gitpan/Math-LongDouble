@@ -55,7 +55,7 @@ use subs qw(
             M_1_PIl M_2_PIl  M_2_SQRTPIl M_SQRT2l M_SQRT1_2l
             );
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 #$VERSION = eval $VERSION;
 
 DynaLoader::bootstrap Math::LongDouble $Math::LongDouble::VERSION;
@@ -535,207 +535,212 @@ Math::LongDouble - perl interface to C's long double operations
    a segfault, check that you've supplied the correct argument type(s).
 
    acos_LD($rop, $op);
-    acos($op) is assigned to $rop.
+    acosl($op) is assigned to $rop.
 
    acosh_LD($rop, $op);
-    acosh($op) is assigned to $rop.
+    acoshl($op) is assigned to $rop.
 
    asin_LD($rop, $op);
-    asin($op) is assigned to $rop.
+    asinl($op) is assigned to $rop.
 
    asinh_LD($rop, $op);
-    asinh($op) is assigned to $rop.
+    asinhl($op) is assigned to $rop.
 
    atan_LD($rop, $op);
-    atan($op) is assigned to $rop.
+    atanl($op) is assigned to $rop.
 
    atanh_LD($rop, $op);
-    atanh($op) is assigned to $rop.
+    atanhl($op) is assigned to $rop.
 
    atan2_LD($rop, $op1, $op2);
-    atan2($op1, $op2) is assigned to $rop.
+    atan2l($op1, $op2) is assigned to $rop.
 
    cbrt_LD($rop, $op);
-    cbrt($op) is assigned to $rop.
+    cbrtl($op) is assigned to $rop.
 
    ceil_LD($rop, $op);
-    ceil($op) is assigned to $rop.
+    ceill($op) is assigned to $rop.
 
    copysign_LD($rop, $op1, $op2);
-    copysign($op1, $op2) is assigned to $rop.
+    copysignl($op1, $op2) is assigned to $rop.
 
    cosh_LD($rop, $op);
-    cosh($op) is assigned to $rop.
+    coshl($op) is assigned to $rop.
 
    cos_LD($rop, $op);
-    cos($op) is assigned to $rop.
+    cosl($op) is assigned to $rop.
 
    erf_LD($rop, $op);
-    erf($op) is assigned to $rop.
+    erfl($op) is assigned to $rop.
 
    erfc_LD($rop, $op);
-    erfc($op) is assigned to $rop.
+    erfcl($op) is assigned to $rop.
 
    exp_LD($rop, $op);
-    exp($op) is assigned to $rop.
+    expl($op) is assigned to $rop.
 
    expm1_LD($rop, $op);
-    expm1($op) is assigned to $rop.
+    expm1l($op) is assigned to $rop.
 
    fabs_LD($rop, $op);
-    fabs($op) is assigned to $rop.
+    fabsl($op) is assigned to $rop.
 
    fdim_LD($rop, $op1, $op2);
-    fdim($op1, $op2) is assigned to $rop.
+    fdiml($op1, $op2) is assigned to $rop.
 
    $iv = finite_LD($op);
     finite($op) is assigned to $iv.
 
    floor_LD($rop, $op);
-    floor($op) is assigned to $rop.
+    floorl($op) is assigned to $rop.
 
    fma_LD($rop, $op1, $op2, $op3);
-    fma($op1, $op2, $op3) is assigned to $rop.
+    fmal($op1, $op2, $op3) is assigned to $rop.
     On mingw-w64 compilers, fmaq() crashes, so for those compilers
     we assign ($op1 * $op2)+$op3 to $rop.
 
    fmax_LD($rop, $op1, $op2);
-    fmax($op1, $op2) is assigned to $rop.
+    fmaxl($op1, $op2) is assigned to $rop.
 
    fmin_LD($rop, $op1, $op2);
     fmin($op1, $op2) is assigned to $rop.
 
    fmod_LD($rop, $op1, $op2);
-    fmod($op1, $op2) is assigned to $rop.
+    fmodl($op1, $op2) is assigned to $rop.
 
    frexp_LD($rop, $iv, $op);
-    frexp($op) is assigned to ($rop, $iv)
+    frexpl($op) is assigned to ($rop, $iv)
 
    hypot_LD($rop, $op1, $op2);
-    hypot($op1, $op2) is assigned to $rop.
+    hypotl($op1, $op2) is assigned to $rop.
 
    $iv = isinf_LD($op);
     isinf($op) is assigned to $iv.
 
    $iv = ilogb_LD($op);
-    ilogb($op) is assigned to $iv.
+    ilogbl($op) is assigned to $iv.
 
    $iv = isnan_LD($op);
-    isnan($op) is assigned to $iv.
+    isnanl($op) is assigned to $iv.
+    If Math::LOngDouble::_have_isnanl returns false, uses custom
+    (_is_nan) XSub instead.
 
    ldexp_LD($rop, $op, $iv);
-    ldexp($op, $iv) is assigned to $rop.
+    ldexpl($op, $iv) is assigned to $rop.
     $iv should not contain a value that won't fit into a signed int
 
    lgamma_LD($rop, $op);
-    lgamma($op) is assigned to $rop.
+    lgammal($op) is assigned to $rop.
 
    $iv = llrint_LD($op);
-    llrint($op) is assigned to $iv.
+    llrintl($op) is assigned to $iv.
     This requires that perl's IV is large enough to hold a longlong
     int. Otherwise attempts to use this function will result in a fatal
     error, accompanied by a message stating that the function is
     unimplemented.
 
    $iv = llround_LD($op);
-    llround($op) is assigned to $rop.
+    llroundl($op) is assigned to $rop.
     This requires that perl's IV is large enough to hold a longlong
     int. Otherwise attempts to use this function will result in a fatal
     error, accompanied by a message stating that the function is
     unimplemented.
 
    log_LD($rop, $op);
-    log($op) is assigned to $rop. # base e
+    logl($op) is assigned to $rop. # base e
 
    log10_LD($rop, $op);
-    log($op) is assigned to $rop. # base 10
+    log10l($op) is assigned to $rop. # base 10
 
    log2_LD($rop, $op);
-    log($op) is assigned to $rop. # base 2
+    log2l($op) is assigned to $rop. # base 2
 
    log1p_LD($rop, $op);
-    log1p($op) is assigned to $rop. # base e
+    log1pl($op) is assigned to $rop. # base e
 
    $iv = lrint_LD($op);
-    lrint($op) is assigned to $iv.
+    lrintl($op) is assigned to $iv.
     This requires that perl's IV is large enough to hold a long int.
     Otherwise attempts to use this function will result in a fatal
     error, accompanied by a message stating that the function is
     unimplemented.
 
    $iv = lround_LD($op);
-    lround($op) is assigned to $iv
+    lroundl($op) is assigned to $iv
     This requires that perl's IV is large enough to hold a long int.
     Otherwise attempts to use this function will result in a fatal
     error, accompanied by a message stating that the function is
     unimplemented.
 
    modf_LD($rop1, $rop2, $op);
-    modf($op) is assigned to ($rop1, $rop2).
+    modfl($op) is assigned to ($rop1, $rop2).
 
    nan_LD($rop, $op);
-    nan($op) is assigned to $rop.
+    nanl($op) is assigned to $rop.
+    If Math::LOngDouble::_have_isnanl returns false, uses custom
+    (_get_nan) XSub instead. (Assumption is made that if isnanl is
+    unavailable then so is nanl.)
 
    nearbyint_LD($rop, $op);
-    nearbyint($op) is assigned to $rop.
+    nearbyintl($op) is assigned to $rop.
 
    nextafter_LD($rop, $op1, $op2);
-    nextafter($op1, $op2) is assigned to $rop.
+    nextafterl($op1, $op2) is assigned to $rop.
 
    pow_LD($rop, $op1, $op2);
     pow($op1, $op2) is assigned to $rop.
 
    remainder_LD($rop, $op1, $op2);
-    remainder($op1, $op2) is assigned to $rop.
+    remainderl($op1, $op2) is assigned to $rop.
 
    remquo_LD($rop1, $rop2, $op1, $op2);
-    remquo($op1, $op2) is assigned to ($rop1, $rop2).
+    remquol($op1, $op2) is assigned to ($rop1, $rop2).
     I find this function can return unexpected results with some
     compilers. Therefore, this function is not tested in the test suite.
     Use it at your own risk.
 
    $iv = rint_LD($op);
-    rint($op) is assigned to $rop.
+    rintl($op) is assigned to $rop.
 
    $iv = round_LD($op);
-    round($op) is assigned to $iv.
+    roundl($op) is assigned to $iv.
 
    scalbln_LD($rop, $op, $iv);
-    scalbln($op, $iv) is assigned to $rop.
+    scalblnl($op, $iv) is assigned to $rop.
     $iv should not contain a value that won't fit into a signed
     long int.
 
    scalbn_LD($rop, $op, $iv);
-    scalbn($op, $iv) is assigned to $rop.
+    scalbnl($op, $iv) is assigned to $rop.
     $iv should not contain a value that won't fir into a signed int.
 
    $iv = signbit_LD($op);
-    signbit($op) is assigned to $iv.
+    signbitl($op) is assigned to $iv.
 
    sincos_LD($rop1, $rop2, $op);
-    sin($op) is assigned to $rop1.
-    cos($op) is assigned to $rop2.
+    sinl($op) is assigned to $rop1.
+    cosl($op) is assigned to $rop2.
 
    sinh_LD($rop, $op);
-    sinh($op) is assigned to $rop.
+    sinhl($op) is assigned to $rop.
 
    sin_LD($rop, $op);
     sin($op) is assigned to $rop.
 
    sqrt_LD($rop, $op);
-    sqrt($op) is assigned to $rop.
+    sqrtl($op) is assigned to $rop.
 
    tan_LD($rop, $op);
-    tan($op) is assigned to $rop.
+    tanl($op) is assigned to $rop.
 
    tanh_LD($rop, $op);
-    tanh($op) is assigned to $rop.
+    tanhl($op) is assigned to $rop.
 
    tgamma_LD($rop, $op);
-    gamma($op) is assigned to $rop.
+    gammal($op) is assigned to $rop.
 
    trunc_LD($rop, $op);
-    trunc($op) is assigned to $rop.
+    truncl($op) is assigned to $rop.
 
 
 =head1 OTHER FUNCTIONS

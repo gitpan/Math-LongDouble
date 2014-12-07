@@ -7,8 +7,10 @@ Check whether erfl can be linked.
 
 int main(void) {
  long double rop, op = 0.6L;
+ int ret;
 
  rop = erfl(op);
+ ret = isnanl(op);
 
  return 0;
 

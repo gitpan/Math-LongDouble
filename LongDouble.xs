@@ -1584,7 +1584,11 @@ int ilogb_LD(ldbl * op) {
 }
 
 int isnan_LD(ldbl * op) {
+#ifdef ISNANL_IS_UNAVAILABLE
+  return _is_nan(*op);
+#else
   return isnanl(*op);
+#endif
 }
 
 void lgamma_LD(ldbl * rop, ldbl * op) {
@@ -1648,7 +1652,11 @@ void modf_LD(ldbl * integer, ldbl * frac, ldbl * op) {
 }
 
 void nan_LD(pTHX_ ldbl * rop, SV * op) {
+#ifdef ISNANL_IS_UNAVAILABLE      /* Assume that 'nanl' is also unavailable */
+  *rop = _get_nan();
+#else
   *rop = nanl(SvPV_nolen(op));
+#endif
 }
 
 void nearbyint_LD(ldbl * rop, ldbl * op) {
@@ -2315,7 +2323,13 @@ int _nan_pow_bug(void) {
 #endif
 }
 
-
+int _have_isnanl(void) {
+#ifdef ISNANL_IS_UNAVAILABLE
+  return 0;
+#else
+  return 1;
+#endif
+}
 
 
 MODULE = Math::LongDouble  PACKAGE = Math::LongDouble
@@ -3996,5 +4010,9 @@ OUTPUT:  RETVAL
 
 int
 _nan_pow_bug ()
+
+
+int
+_have_isnanl ()
 
 
