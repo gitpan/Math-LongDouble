@@ -1,5 +1,5 @@
 /*
-Check whether erfl can be linked.
+Check whether erfl and isnanl can be linked.
 */
 
 #include <stdio.h>
@@ -13,6 +13,5 @@ int main(void) {
  ret = isnanl(op);
 
  return 0;
-
 }
 

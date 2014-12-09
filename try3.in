@@ -1,0 +1,15 @@
+/*
+Check whether nanl can be linked.
+*/
+
+#include <stdio.h>
+#include <math.h>
+
+int main(void) {
+ long double rop;
+
+ rop = nanl("0");
+
+ return 0;
+}
+

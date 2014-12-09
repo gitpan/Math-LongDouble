@@ -1,3 +1,8 @@
+ 0.11
+  - Add extra checks, workarounds, tests wrt (the possibly unimplemented)
+    isnanl(), nanl() and signbitl().
+
+
  0.10
   - Fix checking for nan**0 bug.
   - Modify t/nan_pow.t and t/overload.t to accommodate nan**0 bug.

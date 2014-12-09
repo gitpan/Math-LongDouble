@@ -12,14 +12,19 @@ Check whether NaN ** 0 == 1.
 #include <math.h>
 
 int main(void) {
- long double check, rop;
+ long double check, rop, op3, op1 = 1.0L, op2 = 0.0L;
 
+#if !defined(NANL_IS_UNAVAILABLE)
  rop = nanl("0");
+#else
+ op3 = op1 / op2;
+ rop = (op3) / (op1/op2);
+#endif
 
  if(rop == rop) printf("rop should be NaN but rop == rop\n");
 
  else {
-   check = powl(rop, 0.0L);
+   check = powl(rop, op2);
    if(check == 1.0L) printf("1.0L\n");
    else {
      if(check != check) printf("NaN\n");

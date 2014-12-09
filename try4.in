@@ -1,0 +1,16 @@
+/*
+Check whether signbitl can be linked.
+*/
+
+#include <stdio.h>
+#include <math.h>
+
+int main(void) {
+ long double op = 0.6L;
+ int ret;
+
+ ret = signbitl(op);
+
+ return 0;
+}
+

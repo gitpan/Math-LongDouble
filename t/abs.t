@@ -2,7 +2,7 @@ use warnings;
 use strict;
 use Math::LongDouble qw(:all);
 
-print "1..22\n";
+print "1..28\n";
 
 my $nan = NaNLD();
 my $nnan = NaNLD();
@@ -14,6 +14,8 @@ my $inf = InfLD(1);
 my $ninf = InfLD(-1);
 
 warn "\nMath::LongDouble::_have_isnanl() returns ", Math::LongDouble::_have_isnanl(), "\n";
+warn "Math::LongDouble::_have_nanl() returns ", Math::LongDouble::_have_nanl(), "\n";
+warn "Math::LongDouble::_have_signbitl() returns ", Math::LongDouble::_have_signbitl(), "\n";
 
 if(abs($nunity) == $unity) {print "ok 1\n"}
 else {
@@ -112,3 +114,40 @@ else {
   warn "\n\$rop: $rop\n\n";
   print "not ok 22\n";
 }
+
+if(!isnan_LD(ZeroLD(1))) {print "ok 23\n"}
+else {
+  warn "\n", ZeroLD(1), "unexpectedly reported as a NaN\n";
+  print "not ok 23\n";
+}
+
+if(!isnan_LD(ZeroLD(-1))) {print "ok 24\n"}
+else {
+  warn "\n", ZeroLD(-1), "unexpectedly reported as a NaN\n";
+  print "not ok 24\n";
+}
+
+if(!isnan_LD(InfLD(1))) {print "ok 25\n"}
+else {
+  warn "\n", InfLD(1), "unexpectedly reported as a NaN\n";
+  print "not ok 25\n";
+}
+
+if(!isnan_LD(InfLD(-1))) {print "ok 26\n"}
+else {
+  warn "\n", InfLD(-1), "unexpectedly reported as a NaN\n";
+  print "not ok 26\n";
+}
+
+if(!isnan_LD(UnityLD(1))) {print "ok 27\n"}
+else {
+  warn "\n", UnityLD(1), "unexpectedly reported as a NaN\n";
+  print "not ok 27\n";
+}
+
+if(!isnan_LD(UnityLD(-1))) {print "ok 28\n"}
+else {
+  warn "\n", UnityLD(-1), "unexpectedly reported as a NaN\n";
+  print "not ok 28\n";
+}
+

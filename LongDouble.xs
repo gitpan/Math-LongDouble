@@ -1652,7 +1652,7 @@ void modf_LD(ldbl * integer, ldbl * frac, ldbl * op) {
 }
 
 void nan_LD(pTHX_ ldbl * rop, SV * op) {
-#ifdef ISNANL_IS_UNAVAILABLE      /* Assume that 'nanl' is also unavailable */
+#ifdef NANL_IS_UNAVAILABLE
   *rop = _get_nan();
 #else
   *rop = nanl(SvPV_nolen(op));
@@ -1708,7 +1708,11 @@ void scalbn_LD(ldbl * rop, ldbl * op1, int op2) {
 }
 
 int signbit_LD(ldbl * op) {
+#ifdef SIGNBITL_IS_UNAVAILABLE
+  return signbit(*op);
+#else
   return signbitl(*op);
+#endif
 }
 
 void sincos_LD(ldbl * sin, ldbl * cos, ldbl * op) {
@@ -2331,6 +2335,21 @@ int _have_isnanl(void) {
 #endif
 }
 
+int _have_nanl(void) {
+#ifdef NANL_IS_UNAVAILABLE
+  return 0;
+#else
+  return 1;
+#endif
+}
+
+int _have_signbitl(void) {
+#ifdef SIGNBITL_IS_UNAVAILABLE
+  return 0;
+#else
+  return 1;
+#endif
+}
 
 MODULE = Math::LongDouble  PACKAGE = Math::LongDouble
 
@@ -4014,5 +4033,13 @@ _nan_pow_bug ()
 
 int
 _have_isnanl ()
+
+
+int
+_have_nanl ()
+
+
+int
+_have_signbitl ()
 
 
