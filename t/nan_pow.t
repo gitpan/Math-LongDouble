@@ -22,19 +22,11 @@ else {
   print "not ok 2\n";
 }
 
-if(Math::LongDouble::_nan_pow_bug()) {
-  warn "\n Skipping tests 3..12. Your compiler/libc thinks that nan**0 is\n",
-         " nan, but the correct result is 1. Please update your compiler/libc\n";
-
-  print "ok $_\n" for 3..12;
-  exit 0;
-}
-
 pow_LD($rop, $ld_nan, Math::LongDouble->new(0));
 
 if($rop == 1) {print "ok 3\n"}
 else {
-  warn "\nExpected 1\nGot $rop\n";
+  warn "\nExpected 1\nGot $ld_nan ** ", Math::LongDouble->new(0), " is $rop\n";
   print "not ok 3\n";
 }
 
@@ -43,7 +35,7 @@ else {
 my $check = $ld_nan ** 0;
 if($check == 1) {print "ok 4\n"}
 else {
-  warn "\nExpected 1\nGot $check\n";
+  warn "\nExpected 1\nGot $ld_nan ** 0 is $check\n";
   print "not ok 4\n";
 }
 
@@ -52,14 +44,14 @@ else {
 $check = $ld_nan ** 0.0;
 if($check == 1) {print "ok 5\n"}
 else {
-  warn "\nExpected 1\nGot $check\n";
+  warn "\nExpected 1\nGot $ld_nan ** 0.0 is $check\n";
   print "not ok 5\n";
 }
 
 $check = $native_nan ** Math::LongDouble->new(0);
 if($check == 1) {print "ok 6\n"}
 else {
-  warn "\nExpected 1\nGot $check\n";
+  warn "\nExpected 1\nGot $native_nan ** ", Math::LongDouble->new(0), " is $check\n";
   print "not ok 6\n";
 }
 
@@ -68,7 +60,7 @@ else {
 $check = $ld_nan ** '0';
 if($check == 1) {print "ok 7\n"}
 else {
-  warn "\nExpected 1\nGot $check\n";
+  warn "\nExpected 1\nGot $ld_nan ** '0' is $check\n";
   print "not ok 7\n";
 }
 
@@ -77,7 +69,8 @@ else {
 $check = $ld_nan ** Math::LongDouble->new(0);
 if($check == 1) {print "ok 8\n"}
 else {
-  warn "\nExpected 1\nGot $check\n";
+  warn "\nExpected 1\nGot $ld_nan ** ", Math::LongDouble->new(0), " is $check\n";
+  warn "Math::LongDouble->new(0) is not zero\n" unless is_ZeroLD(Math::LongDouble->new(0));
   print "not ok 8\n";
 }
 
@@ -118,5 +111,6 @@ $check **= Math::LongDouble->new(0);
 if($check == 1) {print "ok 12\n"}
 else {
   warn "\nExpected 1\nGot $check\n";
+  warn "Math::LongDouble->new(0) is not zero\n" unless is_ZeroLD(Math::LongDouble->new(0));
   print "not ok 12\n";
 }

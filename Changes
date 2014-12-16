@@ -1,3 +1,10 @@
+ 0.12
+  - approx()imate test 3 result of pow.t if it fails initially.
+  - run try.exe to check for undefined references that don't show up until
+    runtime.
+  - add more diagnostics to nan_pow.t for failing nan**0 tests.
+  - tweaks to cmp.t to try to fix or better understand some strange failures on FreeBSD.
+
  0.11
   - Add extra checks, workarounds, tests wrt (the possibly unimplemented)
     isnanl(), nanl() and signbitl().

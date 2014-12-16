@@ -24,7 +24,8 @@ int main(void) {
  if(rop == rop) printf("rop should be NaN but rop == rop\n");
 
  else {
-   check = powl(rop, op2);
+   rop /= 2.1L;
+   check = powl(rop, op2 * 3.6L);
    if(check == 1.0L) printf("1.0L\n");
    else {
      if(check != check) printf("NaN\n");

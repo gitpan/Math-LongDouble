@@ -166,7 +166,7 @@ SV * ZeroLD(pTHX_ int sign) {
      obj = newSVrv(obj_ref, "Math::LongDouble");
 
      *ld = 0.0L;
-     if(sign < 0) *ld *= -1;
+     if(sign < 0) *ld *= -1.0L;
 
      sv_setiv(obj, INT2PTR(IV,ld));
      SvREADONLY_on(obj);
@@ -184,7 +184,7 @@ SV * UnityLD(pTHX_ int sign) {
      obj = newSVrv(obj_ref, "Math::LongDouble");
 
      *ld = 1.0L;
-     if(sign < 0) *ld *= -1;
+     if(sign < 0) *ld *= -1.0L;
 
      sv_setiv(obj, INT2PTR(IV,ld));
      SvREADONLY_on(obj);
@@ -1237,14 +1237,7 @@ SV * _overload_pow(pTHX_ SV * a, SV * b, SV * third) {
      if(SvUOK(b)) {
        if(third == &PL_sv_yes)
             *ld = powl((ldbl)SvUV(b), *(INT2PTR(ldbl *, SvIV(SvRV(a)))));
-       else {
-#ifdef NAN_POW_BUG
-         if(_is_nan(*(INT2PTR(ldbl *, SvIV(SvRV(a))))) && SvUV(b) == 0) *ld = 1.0L;
-         else *ld = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), (ldbl)SvUV(b));
-#else
-         *ld = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), (ldbl)SvUV(b));
-#endif
-       }
+       else *ld = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))), (ldbl)SvUV(b));
        return obj_ref;
      }
 
@@ -1320,15 +1313,9 @@ SV * _overload_pow_eq(pTHX_ SV * a, SV * b, SV * third) {
     SvREFCNT_inc(a);
 
     if(SvUOK(b)) {
-#ifdef NAN_POW_BUG
-       *(INT2PTR(ldbl *, SvIV(SvRV(a)))) = _is_nan(*(INT2PTR(ldbl *, SvIV(SvRV(a))))) && SvUV(b) == 0
-                                         ? 1.0L
-                                         : powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))),
-                                                    (ldbl)SvUV(b));
-#else
        *(INT2PTR(ldbl *, SvIV(SvRV(a)))) = powl(*(INT2PTR(ldbl *, SvIV(SvRV(a)))),
                                                     (ldbl)SvUV(b));
-#endif
+
         return a;
     }
 

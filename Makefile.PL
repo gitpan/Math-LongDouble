@@ -18,7 +18,8 @@ print "Couldn't open $log for writing: $!\n" unless $open;
 # Try to detect fatal linking error with erfl() ahead of time. If we detect
 # that this linking problem exists, we then abort the Makefile.PL then
 # and there. This doesn't do anything useful beyond avoiding cpan-tester FAIL reports.
-# To avoid being subjected to the abort, just comment out line 44 below (which is "exit 0;")
+# To avoid being subjected to the abort, just comment out lines 51 and 70 below
+# (which are both "exit 0;")
 
 my $cc;
 
@@ -34,17 +35,36 @@ unless(defined($cc)) {
 
 my $opt = $Config{optimize};
 
-print WR "CC=$cc\nOPTMIZE = $opt\n" if $open;
+print WR "\nCC = $cc\nOPTMIZE = $opt\n" if $open;
 
 
 my $out = `$cc $opt -o try.exe -x c try.in -lm 2>&1`;
 
-print WR "build output (erfl & isnanl check): $out\n" if $open;
+print WR "erfl & isnanl check (build): $out\n" if $open;
 
-# No linking problem at all if try.exe exists.
+# No linking problem yet if try.exe exists.
 unless(-e 'try.exe') {
   if($out =~ /(`|'|"|\s)_?erfl('|`|"|\s)/) {
     print "Aborting:\n$out\n";
+    close WR if $open;
+    unlink $log if -e $log;
+    exit 0; # abort the build
+  }
+
+# Also check whether isnanl() is available and
+# implement a workaround if it's not.
+
+  if($out =~ /(`|'|"|\s)_?isnanl('|`|"|\s)/) {
+    $defines .= ' -DISNANL_IS_UNAVAILABLE';
+  }
+}
+
+# But now we need to see whether the linking problem doesn't show up until runtime.
+else {
+  my $diag = $^O =~ /mswin32/i ? `try.exe 2>&1` : `./try.exe 2>&1`;
+  print WR "erfl & isnanl check (run): $diag\n" if $open;
+  if($diag =~ /(`|'|"|\s)_?erfl('|`|"|\s)/) {
+    print "Aborting:\n$diag\n";
     close WR if $open;
     unlink $log if -e $log;
     exit 0; # abort the build

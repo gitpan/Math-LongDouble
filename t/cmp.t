@@ -53,16 +53,20 @@ $ld = sqrt($ld);
 $nv = sqrt($nv);
 
 if(Math::LongDouble::_long_double_size() != $Config{nvsize}) {
-  if(cmp_NV($ld, $nv)) {print "ok 7\n"}
+  my $cmp = cmp_NV($ld, $nv);
+  if($cmp) {print "ok 7\n"}
   else {
     warn "\nIF\n\$ld: $ld\n\$nv: $nv\n";
+    warn "NaN detected\n" unless defined $cmp;
     print "not ok 7\n";
   }
 }
 else {
-  if(!cmp_NV($ld, $nv)) {print "ok 7\n"}
+  my $cmp = cmp_NV($ld, $nv);
+  if(!$cmp && defined($cmp)) {print "ok 7\n"}
   else {
     warn "\nELSE\n\$ld: $ld\n\$nv: $nv\n";
+    warn "NaN detected\n" unless defined $cmp;
     print "not ok 7\n";
   }
 }
